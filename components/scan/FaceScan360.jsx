@@ -1,6 +1,12 @@
 'use client';
 import { useState, useRef, useCallback, useEffect } from 'react';
 
+function isSkinPixel(r, g, b) {
+  const rule1 = r > 95 && g > 40 && b > 20 && (Math.max(r, g, b) - Math.min(r, g, b)) > 15 && Math.abs(r - g) > 15 && r > g && r > b;
+  const rule2 = r > 80 && g > 30 && b > 15 && r > b && (r - b) > 20 && g > b;
+  return rule1 || rule2;
+}
+
 /**
  * FaceID-inspired 360° Guided Camera Capture
  * 
@@ -30,6 +36,7 @@ export default function FaceScan360({ onComplete, onCancel }) {
   const [countdown, setCountdown] = useState(3);
   const [processing, setProcessing] = useState(false);
   const [ringProgress, setRingProgress] = useState(0);
+  const [faceDetected, setFaceDetected] = useState(false);
 
   // Start camera
   useEffect(() => {
@@ -43,6 +50,47 @@ export default function FaceScan360({ onComplete, onCancel }) {
     const timer = setTimeout(() => setRingProgress(target), 200);
     return () => clearTimeout(timer);
   }, [currentStep]);
+
+  // Skin/Face Auto-Detect Loop
+  useEffect(() => {
+    if (!cameraReady || countingDown || processing || captures.length >= CAPTURE_STEPS.length) return;
+
+    const interval = setInterval(() => {
+      if (!videoRef.current) return;
+      const video = videoRef.current;
+      if (video.videoWidth === 0 || video.videoHeight === 0) return;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 120;
+      canvas.height = 120;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(video, 0, 0, 120, 120);
+      const imgData = ctx.getImageData(0, 0, 120, 120);
+      const pixels = imgData.data;
+
+      // Check center 50% box
+      let skinPixels = 0;
+      const startBox = 30, endBox = 90;
+      for (let y = startBox; y < endBox; y++) {
+        for (let x = startBox; x < endBox; x++) {
+          const idx = (y * 120 + x) * 4;
+          if (isSkinPixel(pixels[idx], pixels[idx+1], pixels[idx+2])) skinPixels++;
+        }
+      }
+
+      const totalBox = (endBox - startBox) * (endBox - startBox);
+      const percent = (skinPixels / totalBox) * 100;
+      
+      if (percent > 20) {
+        setFaceDetected(true);
+        handleCapture();
+      } else {
+        setFaceDetected(false);
+      }
+    }, 600);
+
+    return () => clearInterval(interval);
+  }, [cameraReady, countingDown, processing, captures.length, handleCapture]);
 
   const startCamera = async () => {
     try {
@@ -347,11 +395,22 @@ export default function FaceScan360({ onComplete, onCancel }) {
             }}>
               {step.label}
             </h3>
-            <p style={{ fontSize: '0.82rem', color: '#A8A2C0', marginBottom: '20px' }}>
-              {step.instruction}
+            <p style={{ 
+              fontSize: '0.82rem', 
+              color: faceDetected || countingDown ? '#4CAF50' : '#A8A2C0', 
+              marginBottom: '16px',
+              transition: 'color 0.3s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+            }}>
+              {(faceDetected || countingDown) ? '✓ Face Detected!' : step.instruction}
             </p>
+            {(!countingDown && !faceDetected) && (
+              <div style={{ fontSize: '0.72rem', color: '#9B82FF', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '16px', animation: 'pulse-accent 1.5s infinite auto-reverse' }}>
+                Auto-Capture is ON — Align your face into the circle
+              </div>
+            )}
 
-            {/* Capture button */}
+            {/* Capture button (Fallback) */}
             <button
               onClick={handleCapture}
               disabled={countingDown || !cameraReady}
