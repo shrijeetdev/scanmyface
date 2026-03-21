@@ -2,12 +2,14 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/useAuth';
 import Logo from '@/components/ui/Logo';
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { isLoggedIn, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -65,12 +67,29 @@ export default function Header() {
           {theme === 'light' ? '🌙' : '☀️'}
         </button>
 
-        <Link href="/login" className="hide-mobile" style={{
-          fontSize: '0.85rem', color: 'var(--text-secondary)',
-          fontWeight: 500, letterSpacing: '0.04em',
-        }}>
-          Login
-        </Link>
+        {!isLoggedIn ? (
+          <Link href="/login" className="hide-mobile" style={{
+            fontSize: '0.85rem', color: 'var(--text-secondary)',
+            fontWeight: 500, letterSpacing: '0.04em',
+          }}>
+            Login
+          </Link>
+        ) : (
+          <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Link href="/dashboard" style={{
+              fontSize: '0.85rem', color: 'var(--text-secondary)',
+              fontWeight: 500, letterSpacing: '0.04em',
+            }}>
+              Dashboard
+            </Link>
+            <button onClick={logout} style={{
+              fontSize: '0.85rem', color: 'var(--text-dim)',
+              fontWeight: 500, letterSpacing: '0.04em', background: 'none', border: 'none', cursor: 'pointer', padding: 0
+            }}>
+              Logout
+            </button>
+          </div>
+        )}
 
         <Link href="/scan" className="btn btn-gold btn-sm">
           Scan Free ✦
@@ -120,9 +139,23 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
-          <Link href="/login" style={{ fontSize: '0.9rem', color: 'var(--gold)' }} onClick={() => setMobileOpen(false)}>
-            Login
-          </Link>
+          {!isLoggedIn ? (
+            <Link href="/login" style={{ fontSize: '0.9rem', color: 'var(--gold)' }} onClick={() => setMobileOpen(false)}>
+              Login
+            </Link>
+          ) : (
+            <>
+              <Link href="/dashboard" style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }} onClick={() => setMobileOpen(false)}>
+                Dashboard
+              </Link>
+              <button 
+                onClick={() => { setMobileOpen(false); logout(); }} 
+                style={{ fontSize: '0.9rem', color: 'var(--text-dim)', background: 'none', border: 'none', textAlign: 'left', padding: 0, cursor: 'pointer' }}
+              >
+                Logout
+              </button>
+            </>
+          )}
         </div>
       )}
     </header>

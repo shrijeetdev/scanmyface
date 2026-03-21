@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -138,6 +138,45 @@ export default function ScanPage() {
   const [scanning, setScanning] = useState(false);
   const [stageIndex, setStageIndex] = useState(0);
 
+  // Auto-skip onboarding if profile exists
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (!error && profile && profile.skin_type) {
+          const loadedAnswers = {
+            ageGroup: profile.age_group,
+            gender: profile.gender,
+            skinType: profile.skin_type,
+            sleep: profile.sleep,
+            water: profile.water_intake,
+            diet: profile.diet,
+          };
+          // Remove empty values
+          Object.keys(loadedAnswers).forEach(k => !loadedAnswers[k] && delete loadedAnswers[k]);
+          setAnswers(loadedAnswers);
+          
+          // Skip entirely if main questions exist
+          if (profile.skin_type && profile.age_group) {
+            setStep(3); // Jump to Choose Scan Mode
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch profile', err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
   /* ─── Question helpers ─── */
   const selectAnswer = (qId, value) => {
     setAnswers(prev => ({ ...prev, [qId]: value }));
@@ -193,14 +232,28 @@ export default function ScanPage() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return; // guest — skip saving
+      
+      // Save the scan
       await supabase.from('scans').insert({
         user_id: user.id,
         score: report.score,
         score_label: report.scoreLabel,
         issues_json: report.detectedIssues,
       });
-    } catch {
-      // Fail silently if table not yet created
+
+      // Save/upsert the user profile properties implicitly
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        updated_at: new Date().toISOString(),
+        skin_type: answers.skinType,
+        age_group: answers.ageGroup,
+        gender: answers.gender,
+        sleep: answers.sleep,
+        water_intake: answers.water,
+        diet: answers.diet
+      });
+    } catch (e) {
+      console.error("Error saving scan/profile to DB:", e);
     }
   };
 

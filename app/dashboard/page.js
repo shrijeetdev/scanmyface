@@ -92,14 +92,31 @@ function TrendChart({ history }) {
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState(null);
+  const [editProfile, setEditProfile] = useState({});
+  const [isEditing, setIsEditing] = useState(false);
   const [lastReport, setLastReport] = useState(null);
   const [history, setHistory] = useState(DEMO_HISTORY);
   const [streak, setStreak] = useState(3);
 
   useEffect(() => {
-    const prof = sessionStorage.getItem('userProfile');
+    const fetchUserProfile = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+          if (data) {
+            setProfile(data);
+            setEditProfile(data);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchUserProfile();
+
     const rep = sessionStorage.getItem('scanReport');
-    if (prof) setProfile(JSON.parse(prof));
     if (rep) {
       const r = JSON.parse(rep);
       setLastReport(r);
@@ -152,8 +169,32 @@ export default function DashboardPage() {
     fetchHistory();
   }, []);
 
-  const displayName = profile?.name || 'Skin Lover';
-  const displaySkin = profile?.skinType || 'Not set';
+  const handleSaveProfile = async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const payload = {
+        id: user.id,
+        updated_at: new Date().toISOString(),
+        full_name: editProfile.full_name,
+        skin_type: editProfile.skin_type,
+        age_group: editProfile.age_group,
+        diet: editProfile.diet,
+        gender: editProfile.gender,
+      };
+      
+      await supabase.from('profiles').upsert(payload);
+      setProfile(payload);
+      setIsEditing(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const displayName = profile?.full_name || profile?.name || 'Skin Lover';
+  const displaySkin = profile?.skin_type || profile?.skinType || 'Not set';
   const latestScore = history[0]?.score;
 
   return (
@@ -169,27 +210,68 @@ export default function DashboardPage() {
             flexWrap: 'wrap', gap: '20px', marginBottom: '40px',
             paddingBottom: '32px', borderBottom: '1px solid var(--border-color)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                background: 'var(--gold-glow)', border: '2px solid var(--gold-border)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.8rem', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, color: 'var(--gold)',
-              }}>
-                {displayName.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--gold)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '4px' }}>Welcome back</div>
-                <h1 className="font-serif" style={{ fontSize: 'clamp(1.4rem, 3vw, 2rem)', marginBottom: '4px' }}>{displayName}</h1>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    Skin type: <span style={{ color: 'var(--text-secondary)', fontWeight: 500, textTransform: 'capitalize' }}>{displaySkin}</span>
-                  </span>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--gold)' }}>🔥 {streak} week streak</span>
+            {isEditing ? (
+              <div style={{ flex: 1, background: 'var(--glass-bg)', padding: '24px', borderRadius: '16px', border: '1px solid var(--gold-border)' }}>
+                <h3 className="font-serif" style={{ fontSize: '1.2rem', marginBottom: '16px' }}>Edit Profile</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Name</label>
+                    <input type="text" value={editProfile.full_name || ''} onChange={e => setEditProfile({...editProfile, full_name: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} placeholder="Your Name" />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Skin Type</label>
+                    <select value={editProfile.skin_type || ''} onChange={e => setEditProfile({...editProfile, skin_type: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+                      <option value="">Select...</option>
+                      <option value="oily">Oily 💧</option>
+                      <option value="dry">Dry 🏜</option>
+                      <option value="combination">Combination ⚖️</option>
+                      <option value="normal">Normal ✅</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Diet</label>
+                    <select value={editProfile.diet || ''} onChange={e => setEditProfile({...editProfile, diet: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+                      <option value="">Select...</option>
+                      <option value="balanced">Balanced 🥗</option>
+                      <option value="high_sugar">High Sugar 🍩</option>
+                      <option value="high_protein">High Protein 🍗</option>
+                      <option value="junk_heavy">Junk Heavy 🍔</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button className="btn btn-gold" onClick={handleSaveProfile}>Save Changes</button>
+                  <button className="btn btn-ghost" onClick={() => { setIsEditing(false); setEditProfile(profile || {}); }}>Cancel</button>
                 </div>
               </div>
-            </div>
-            <Link href="/scan" className="btn btn-gold">✦ New Scan</Link>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{
+                    width: '64px', height: '64px', borderRadius: '50%',
+                    background: 'var(--gold-glow)', border: '2px solid var(--gold-border)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '1.8rem', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, color: 'var(--gold)',
+                  }}>
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--gold)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '4px' }}>Welcome back</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                      <h1 className="font-serif" style={{ fontSize: 'clamp(1.4rem, 3vw, 2rem)' }}>{displayName}</h1>
+                      <button onClick={() => setIsEditing(true)} style={{ background: 'none', border: 'none', fontSize: '0.81rem', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}>Edit</button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        Skin type: <span style={{ color: 'var(--text-secondary)', fontWeight: 500, textTransform: 'capitalize' }}>{displaySkin}</span>
+                      </span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--gold)' }}>🔥 {streak} week streak</span>
+                    </div>
+                  </div>
+                </div>
+                <Link href="/scan" className="btn btn-gold">✦ New Scan</Link>
+              </>
+            )}
           </div>
 
           {/* Stat cards */}
