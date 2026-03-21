@@ -97,6 +97,16 @@ export default function DashboardPage() {
   const [lastReport, setLastReport] = useState(null);
   const [history, setHistory] = useState(DEMO_HISTORY);
   const [streak, setStreak] = useState(3);
+  const [reminders, setReminders] = useState([
+    { id: 1, icon: '☀️', text: 'Apply SPF before going out', done: false },
+    { id: 2, icon: '💧', text: 'Drink 8 glasses of water', done: false },
+    { id: 3, icon: '🌙', text: 'Night routine: Retinoid tonight', done: false },
+    { id: 4, icon: '📸', text: 'Weekly scan due in 2 days', done: false },
+  ]);
+
+  const toggleReminder = (id) => {
+    setReminders(prev => prev.map(r => r.id === id ? { ...r, done: !r.done } : r));
+  };
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -365,24 +375,27 @@ export default function DashboardPage() {
               {/* Quick tips */}
               <div className="glass-card" style={{ padding: '24px' }}>
                 <h3 className="font-serif" style={{ fontSize: '1rem', marginBottom: '14px' }}>Today's Reminders</h3>
-                {[
-                  { icon: '☀️', text: 'Apply SPF before going out', done: true },
-                  { icon: '💧', text: 'Drink 8 glasses of water', done: false },
-                  { icon: '🌙', text: 'Night routine: Retinoid tonight', done: false },
-                  { icon: '📸', text: 'Weekly scan due in 2 days', done: false },
-                ].map((tip, i) => (
-                  <div key={i} style={{
+                {reminders.map((tip, i) => (
+                  <div key={tip.id} onClick={() => toggleReminder(tip.id)} style={{
                     display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '8px 0',
-                    borderBottom: i < 3 ? '1px solid var(--border-subtle)' : 'none',
+                    padding: '8px 0', cursor: 'pointer',
+                    borderBottom: i < reminders.length - 1 ? '1px solid var(--border-subtle)' : 'none',
                   }}>
                     <span style={{ fontSize: '1rem' }}>{tip.icon}</span>
                     <span style={{
-                      fontSize: '0.83rem', flex: 1,
+                      fontSize: '0.83rem', flex: 1, transition: 'all 0.2s',
                       color: tip.done ? 'var(--text-muted)' : 'var(--text-primary)',
                       textDecoration: tip.done ? 'line-through' : 'none',
                     }}>{tip.text}</span>
-                    {tip.done && <span style={{ color: 'var(--score-good)', fontSize: '0.8rem' }}>✓</span>}
+                    <div style={{
+                      width: '18px', height: '18px', borderRadius: '50%',
+                      border: `1.5px solid ${tip.done ? 'var(--score-good)' : 'var(--border-color)'}`,
+                      background: tip.done ? 'var(--score-good)' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.2s'
+                    }}>
+                      {tip.done && <span style={{ color: '#fff', fontSize: '0.6rem', fontWeight: 'bold' }}>✓</span>}
+                    </div>
                   </div>
                 ))}
               </div>
