@@ -1,5 +1,7 @@
 import { ThemeProvider } from '@/hooks/useTheme';
 import { AuthProvider } from '@/hooks/useAuth';
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
 import './globals.css';
 
 export const metadata = {
@@ -34,6 +36,8 @@ export default function RootLayout({ children }) {
         <ThemeProvider>
           <AuthProvider>
             {children}
+            <SpeedInsights />
+            <Analytics />
           </AuthProvider>
         </ThemeProvider>
       </body>
