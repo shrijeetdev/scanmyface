@@ -9,7 +9,22 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
-  const { isLoggedIn, logout } = useAuth();
+  const { isLoggedIn, user, logout } = useAuth();
+  const [headerName, setHeaderName] = useState('My Profile');
+
+  useEffect(() => {
+    if (user?.id) {
+      import('@/utils/supabase/client').then(({ createClient }) => {
+        const supabase = createClient();
+        supabase.from('profiles').select('full_name').eq('id', user.id).single()
+          .then(({ data }) => {
+            if (data?.full_name) {
+              setHeaderName(data.full_name);
+            }
+          });
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -78,9 +93,16 @@ export default function Header() {
           <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <Link href="/dashboard" style={{
               fontSize: '0.85rem', color: 'var(--text-secondary)',
-              fontWeight: 500, letterSpacing: '0.04em',
+              fontWeight: 500, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '8px'
             }}>
-              Dashboard
+              <span style={{
+                width: '22px', height: '22px', borderRadius: '50%', background: 'var(--gold-glow)', border: '1px solid var(--gold)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)',
+                fontWeight: 'bold', fontSize: '0.75rem'
+              }}>
+                {headerName.charAt(0).toUpperCase()}
+              </span>
+              {headerName.split(' ')[0]}
             </Link>
             <button onClick={logout} style={{
               fontSize: '0.85rem', color: 'var(--text-dim)',
@@ -145,8 +167,15 @@ export default function Header() {
             </Link>
           ) : (
             <>
-              <Link href="/dashboard" style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }} onClick={() => setMobileOpen(false)}>
-                Dashboard
+              <Link href="/dashboard" style={{ fontSize: '0.9rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => setMobileOpen(false)}>
+                <span style={{
+                  width: '24px', height: '24px', borderRadius: '50%', background: 'var(--gold-glow)', border: '1px solid var(--gold)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)',
+                  fontWeight: 'bold', fontSize: '0.8rem'
+                }}>
+                  {headerName.charAt(0).toUpperCase()}
+                </span>
+                {headerName.split(' ')[0]}
               </Link>
               <button 
                 onClick={() => { setMobileOpen(false); logout(); }} 
