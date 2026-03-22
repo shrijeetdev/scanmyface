@@ -5,12 +5,6 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { createClient } from '@/utils/supabase/client';
 
-const DEMO_HISTORY = [
-  { id: '1', date: '2026-03-21', score: 72, issues: ['Acne & Breakouts', 'Excess Oil', 'Enlarged Pores'], label: 'Fair' },
-  { id: '2', date: '2026-03-14', score: 65, issues: ['Acne & Breakouts', 'Dark Spots', 'Excess Oil'], label: 'Fair' },
-  { id: '3', date: '2026-03-07', score: 58, issues: ['Acne & Breakouts', 'Dark Spots', 'Redness'], label: 'Needs Attention' },
-];
-
 const SCORE_COLOR_RAW = (s) => s >= 80 ? '#2E7D32' : s >= 60 ? '#E65100' : '#C62828';
 const SCORE_LABEL = (s) => s >= 80 ? 'Great' : s >= 60 ? 'Good' : s >= 40 ? 'Fair' : 'Needs Attention';
 
@@ -23,28 +17,17 @@ function MiniScoreRing({ score, size = 56 }) {
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
         <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--border-color)" strokeWidth={stroke} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circ}
-          strokeDashoffset={circ - (score / 100) * circ}
-          style={{ filter: `drop-shadow(0 0 4px ${color}88)` }} />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ - (score / 100) * circ} style={{ filter: `drop-shadow(0 0 4px ${color}88)` }} />
       </svg>
-      <div style={{
-        position: 'absolute', inset: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '0.9rem',
-        fontWeight: 700, color,
-      }}>{score}</div>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '0.9rem', fontWeight: 700, color }}>{score}</div>
     </div>
   );
 }
 
 function TrendChart({ history }) {
   const max = 100, min = 0;
-  const width = 280, height = 80;
-  const pad = 20;
-  const w = width - pad * 2;
-  const h = height - pad;
+  const width = 280, height = 80, pad = 20;
+  const w = width - pad * 2, h = height - pad;
 
   if (history.length < 2) return null;
 
@@ -62,8 +45,8 @@ function TrendChart({ history }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
         <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Score Trend</span>
-        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: diff > 0 ? 'var(--score-good)' : 'var(--score-fair)' }}>
-          {diff > 0 ? '↑' : '↓'} {Math.abs(diff)} pts
+        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: diff >= 0 ? 'var(--score-good)' : 'var(--score-fair)' }}>
+          {diff > 0 ? '↑' : diff < 0 ? '↓' : ''} {Math.abs(diff)} pts
         </span>
       </div>
       <svg width={width} height={height} style={{ overflow: 'visible' }}>
@@ -80,7 +63,7 @@ function TrendChart({ history }) {
         ))}
       </svg>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-        {[...history].reverse().map(h => (
+        {[...history].reverse().map((h, i) => (i === 0 || i === history.length - 1) && (
           <span key={h.id} style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>
             {new Date(h.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
           </span>
@@ -94,89 +77,45 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState(null);
   const [editProfile, setEditProfile] = useState({});
   const [isEditing, setIsEditing] = useState(false);
-  const [lastReport, setLastReport] = useState(null);
-  const [history, setHistory] = useState(DEMO_HISTORY);
-  const [streak, setStreak] = useState(3);
-  const [reminders, setReminders] = useState([
-    { id: 1, icon: '☀️', text: 'Apply SPF before going out', done: false },
-    { id: 2, icon: '💧', text: 'Drink 8 glasses of water', done: false },
-    { id: 3, icon: '🌙', text: 'Night routine: Retinoid tonight', done: false },
-    { id: 4, icon: '📸', text: 'Weekly scan due in 2 days', done: false },
-  ]);
+  const [history, setHistory] = useState([]);
+  const [streak, setStreak] = useState(0);
 
-  const toggleReminder = (id) => {
-    setReminders(prev => prev.map(r => r.id === id ? { ...r, done: !r.done } : r));
-  };
+  // Product Matcher
+  const [productInput, setProductInput] = useState('');
+  const [productResult, setProductResult] = useState('');
+
+  // Editable Habit Engine
+  const [habits, setHabits] = useState({
+    am: { active: true, time: '08:00' },
+    pm: { active: true, time: '21:00' },
+  });
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-          if (data) {
-            setProfile(data);
-            setEditProfile(data);
-          }
+        if (!user) return;
+
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (data) {
+          setProfile(data);
+          setEditProfile(data);
         }
-      } catch (e) {
-        console.error(e);
-      }
+
+        const { data: scans } = await supabase.from('scans').select('id, score, score_label, issues_json, created_at').eq('user_id', user.id).order('created_at', { ascending: false });
+        if (scans && scans.length > 0) {
+          const dbHistory = scans.map(s => ({
+            id: s.id, date: s.created_at.split('T')[0], score: s.score,
+            issues: (s.issues_json || []).slice(0, 3).map(i => i.name || i),
+            label: s.score_label,
+          }));
+          setHistory(dbHistory);
+          setStreak(scans.length);
+        }
+      } catch (e) { console.error(e); }
     };
     fetchUserProfile();
-
-    const rep = sessionStorage.getItem('scanReport');
-    if (rep) {
-      const r = JSON.parse(rep);
-      setLastReport(r);
-      setHistory(prev => {
-        // Prevent duplicate insertion in React Strict Mode
-        if (prev.some(h => h.isLatest)) return prev;
-        
-        return [{
-          id: 'latest-' + Date.now(), 
-          isLatest: true,
-          date: new Date().toISOString().split('T')[0],
-          score: r.score, 
-          issues: r.detectedIssues.slice(0, 3).map(i => i.name), 
-          label: r.scoreLabel,
-        }, ...prev.slice(0, 2)];
-      });
-    }
-    
-    // Fetch real scan history from Supabase (if user is logged in)
-    const fetchHistory = async () => {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        
-        const { data, error } = await supabase
-          .from('scans')
-          .select('id, score, score_label, issues_json, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(10);
-        
-        if (error || !data?.length) return;
-        
-        // Format into the shape the dashboard expects
-        const dbHistory = data.map(s => ({
-          id: s.id,
-          date: s.created_at.split('T')[0],
-          score: s.score,
-          issues: (s.issues_json || []).slice(0, 3).map(i => i.name || i),
-          label: s.score_label,
-        }));
-        
-        setHistory(dbHistory);
-        setStreak(Math.min(data.length, 10));
-      } catch {
-        // No database available yet, keep demo history
-      }
-    };
-    fetchHistory();
   }, []);
 
   const handleSaveProfile = async () => {
@@ -184,103 +123,102 @@ export default function DashboardPage() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      
-      const payload = {
-        id: user.id,
-        updated_at: new Date().toISOString(),
-        full_name: editProfile.full_name,
-        skin_type: editProfile.skin_type,
-        age_group: editProfile.age_group,
-        diet: editProfile.diet,
-        gender: editProfile.gender,
-      };
-      
+      const payload = { ...editProfile, id: user.id, updated_at: new Date().toISOString() };
       await supabase.from('profiles').upsert(payload);
       setProfile(payload);
       setIsEditing(false);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) {}
+  };
+
+  const checkProduct = () => {
+    if (!productInput) return;
+    const baseSkin = (profile?.skin_type || 'normal').toLowerCase();
+    const inputClean = productInput.toLowerCase();
+    const isBad = (baseSkin === 'oily' && inputClean.match(/oil|heavy|comedogenic/)) || (baseSkin === 'dry' && inputClean.match(/alcohol|acid|stripping/));
+    setProductResult(isBad ? 'Not Recommended for your skin type.' : 'Great Match! Safe for your routine.');
+  };
+
+  const handleDownloadReport = () => {
+    window.print();
   };
 
   const displayName = profile?.full_name || profile?.name || 'Skin Lover';
-  const displaySkin = profile?.skin_type || profile?.skinType || 'Not set';
+  const displaySkin = profile?.skin_type || 'Not set';
   const latestScore = history[0]?.score;
 
   return (
     <main style={{ minHeight: '100vh', paddingTop: '70px' }}>
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          header, footer, .hide-on-print { display: none !important; }
+          body { background: #fff !important; color: #000 !important; }
+          .glass-card { border: 1px solid #ddd !important; box-shadow: none !important; background: #fff !important; break-inside: avoid; }
+          h1, h2, h3, p, span, div { color: #000 !important; }
+          button { display: none !important; }
+        }
+      `}} />
       <Header />
 
       <div style={{ padding: '40px 24px 80px' }}>
-        <div className="container" style={{ maxWidth: '900px' }}>
+        <div id="dashboard-content" className="container" style={{ maxWidth: '900px' }}>
 
-          {/* Profile header */}
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-            flexWrap: 'wrap', gap: '20px', marginBottom: '40px',
-            paddingBottom: '32px', borderBottom: '1px solid var(--border-color)',
-          }}>
+          {/* Profile header & PDF Download */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '40px', paddingBottom: '32px', borderBottom: '1px solid var(--border-color)' }}>
             {isEditing ? (
               <div style={{ flex: 1, background: 'var(--glass-bg)', padding: '24px', borderRadius: '16px', border: '1px solid var(--gold-border)' }}>
                 <h3 className="font-serif" style={{ fontSize: '1.2rem', marginBottom: '16px' }}>Edit Profile</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Name</label>
-                    <input type="text" value={editProfile.full_name || ''} onChange={e => setEditProfile({...editProfile, full_name: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} placeholder="Your Name" />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Skin Type</label>
-                    <select value={editProfile.skin_type || ''} onChange={e => setEditProfile({...editProfile, skin_type: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-                      <option value="">Select...</option>
-                      <option value="oily">Oily 💧</option>
-                      <option value="dry">Dry 🏜</option>
-                      <option value="combination">Combination ⚖️</option>
-                      <option value="normal">Normal ✅</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Diet</label>
-                    <select value={editProfile.diet || ''} onChange={e => setEditProfile({...editProfile, diet: e.target.value})} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-                      <option value="">Select...</option>
-                      <option value="balanced">Balanced 🥗</option>
-                      <option value="high_sugar">High Sugar 🍩</option>
-                      <option value="high_protein">High Protein 🍗</option>
-                      <option value="junk_heavy">Junk Heavy 🍔</option>
-                    </select>
-                  </div>
+                  <div><label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Name</label><input type="text" value={editProfile.full_name || ''} onChange={e => setEditProfile({...editProfile, full_name: e.target.value})} className="input" style={{ width: '100%' }} /></div>
+                  <div><label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Skin Type</label><select value={editProfile.skin_type || ''} onChange={e => setEditProfile({...editProfile, skin_type: e.target.value})} className="input" style={{ width: '100%' }}><option value="">Select...</option><option value="oily">Oily 💧</option><option value="dry">Dry 🏜</option><option value="combination">Combination ⚖️</option><option value="normal">Normal ✅</option></select></div>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <button className="btn btn-gold" onClick={handleSaveProfile}>Save Changes</button>
-                  <button className="btn btn-ghost" onClick={() => { setIsEditing(false); setEditProfile(profile || {}); }}>Cancel</button>
+                  <button className="btn btn-ghost" onClick={() => setIsEditing(false)}>Cancel</button>
                 </div>
               </div>
             ) : (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{
-                    width: '64px', height: '64px', borderRadius: '50%',
-                    background: 'var(--gold-glow)', border: '2px solid var(--gold-border)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '1.8rem', fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, color: 'var(--gold)',
-                  }}>
+                  <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--gold-glow)', border: '2px solid var(--gold-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', color: 'var(--gold)', fontWeight: 700 }}>
                     {displayName.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--gold)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '4px' }}>Welcome back</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--gold)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Welcome back</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '4px 0' }}>
                       <h1 className="font-serif" style={{ fontSize: 'clamp(1.4rem, 3vw, 2rem)' }}>{displayName}</h1>
                       <button onClick={() => setIsEditing(true)} style={{ background: 'none', border: 'none', fontSize: '0.81rem', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}>Edit</button>
                     </div>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        Skin type: <span style={{ color: 'var(--text-secondary)', fontWeight: 500, textTransform: 'capitalize' }}>{displaySkin}</span>
-                      </span>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--gold)' }}>🔥 {streak} week streak</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Skin type: <span style={{ color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{displaySkin}</span></span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--gold)' }}>🔥 {streak} wks streak</span>
                     </div>
                   </div>
                 </div>
-                <Link href="/scan" className="btn btn-gold">✦ New Scan</Link>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <Link href="/scan" className="btn btn-ghost hide-on-print">✦ New Scan</Link>
+                  <button onClick={handleDownloadReport} disabled={history.length === 0} className="btn hide-on-print" style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)', fontWeight: 700 }}>
+                    📥 Download PDF Report
+                  </button>
+                </div>
               </>
+            )}
+          </div>
+
+          {/* Section 5 moved to top: Product Matcher */}
+          <div style={{ background: 'linear-gradient(135deg, rgba(88,86,118,0.2) 0%, rgba(155,130,255,0.15) 100%)', padding: '32px', borderRadius: '16px', border: '1px solid rgba(155,130,255,0.4)', marginBottom: '32px', boxShadow: '0 8px 32px rgba(155,130,255,0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '1.4rem' }}>✨</span>
+              <h2 className="font-serif" style={{ fontSize: '1.4rem', color: '#fff' }}>Product Compatibility Check</h2>
+            </div>
+            <p style={{ fontSize: '0.9rem', color: '#D4C6FF', marginBottom: '20px' }}>Enter the name or key ingredient of any product to see if it's safe for your <strong>{displaySkin}</strong> skin type.</p>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <input value={productInput} onChange={e => setProductInput(e.target.value)} type="text" placeholder="e.g. Salicylic Acid Cleanser" style={{ flex: 1, minWidth: '240px', padding: '12px 16px', borderRadius: '8px', border: 'none', background: '#fff', color: '#000', fontSize: '0.95rem' }} />
+              <button onClick={checkProduct} className="btn" style={{ background: '#9B82FF', color: '#fff', border: 'none', padding: '12px 24px' }}>Check Match</button>
+            </div>
+            {productResult && (
+              <div style={{ marginTop: '20px', padding: '16px', background: productResult.includes('Great') ? 'rgba(76, 175, 80, 0.15)' : 'rgba(244, 67, 54, 0.15)', borderLeft: `4px solid ${productResult.includes('Great') ? '#4CAF50' : '#F44336'}`, borderRadius: '8px', color: '#fff', fontSize: '0.95rem', fontWeight: 500 }}>
+                {productResult}
+              </div>
             )}
           </div>
 
@@ -293,17 +231,13 @@ export default function DashboardPage() {
               { label: 'Streak', value: `${streak} wks`, sub: 'Consistent scans', icon: '🔥', color: '#FF7043' },
             ].map(c => (
               <div key={c.label} className="glass-card" style={{ padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{c.label}</div>
-                  <span style={{ fontSize: '1.2rem' }}>{c.icon}</span>
-                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{c.label}</div><span style={{ fontSize: '1.2rem' }}>{c.icon}</span></div>
                 <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '1.8rem', color: c.color, fontWeight: 700, lineHeight: 1, margin: '10px 0 4px' }}>{c.value}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.sub}</div>
               </div>
             ))}
           </div>
 
-          {/* Main content grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
             {/* Scan History */}
             <div className="glass-card" style={{ padding: '24px' }}>
@@ -311,106 +245,76 @@ export default function DashboardPage() {
                 <h2 className="font-serif" style={{ fontSize: '1.1rem' }}>Scan History</h2>
                 <span className="badge badge-gold">{history.length} scans</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {history.map((scan, i) => (
-                  <div key={scan.id} style={{
-                    display: 'flex', alignItems: 'center', gap: '14px',
-                    background: i === 0 ? 'var(--gold-bg)' : 'var(--glass-bg)',
-                    border: `1px solid ${i === 0 ? 'var(--gold-border)' : 'var(--border-subtle)'}`,
-                    borderRadius: '10px', padding: '12px 14px',
-                  }}>
-                    <MiniScoreRing score={scan.score} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 500 }}>
-                          {new Date(scan.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
-                        {i === 0 && <span className="badge badge-gold" style={{ fontSize: '0.62rem' }}>Latest</span>}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {scan.issues.slice(0, 2).join(' · ')}
+              
+              {history.length === 0 ? (
+                <div style={{ padding: '32px 16px', textAlign: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '12px' }}>📸</div>
+                  <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '16px' }}>No scans available yet. Let's start tracking your skin health!</p>
+                  <Link href="/scan" className="btn btn-gold btn-sm">Take First Scan</Link>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {history.map((scan, i) => (
+                    <div key={scan.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', background: i === 0 ? 'var(--gold-bg)' : 'var(--glass-bg)', border: `1px solid ${i === 0 ? 'var(--gold-border)' : 'var(--border-subtle)'}`, borderRadius: '10px', padding: '12px 14px' }}>
+                      <MiniScoreRing score={scan.score} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 500 }}>{new Date(scan.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                          {i === 0 && <span className="badge badge-gold" style={{ fontSize: '0.62rem' }}>Latest</span>}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{scan.issues.slice(0, 2).join(' · ')}</div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-              <Link href="/scan" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center', marginTop: '16px' }}>+ New Scan</Link>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Right column */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* Trend chart */}
               <div className="glass-card" style={{ padding: '24px' }}>
                 <h2 className="font-serif" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>Progress Tracker</h2>
-                <TrendChart history={history} />
-                {history.length >= 2 && (
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '12px', fontStyle: 'italic' }}>
-                    Your skin score improved by <span style={{ color: 'var(--score-good)' }}>{history[0].score - history[history.length - 1].score} points</span> in {history.length} scans.
-                  </p>
+                {history.length >= 2 ? (
+                  <>
+                    <TrendChart history={history} />
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '12px', fontStyle: 'italic' }}>Your skin score improved by <span style={{ color: 'var(--score-good)' }}>{history[0].score - history[history.length - 1].score} points</span> in {history.length} scans.</p>
+                  </>
+                ) : (
+                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Complete at least 2 scans to see your progress chart.</p>
                 )}
               </div>
 
-              {/* Weekly reminder */}
-              <div style={{
-                background: 'linear-gradient(135deg, var(--gold-bg), var(--glass-bg))',
-                border: '1px solid var(--gold-border)', borderRadius: '16px', padding: '24px',
-              }}>
-                <div style={{ fontSize: '1.5rem', marginBottom: '10px' }}>🔔</div>
-                <h3 className="font-serif" style={{ fontSize: '1rem', marginBottom: '8px' }}>Weekly Scan Reminder</h3>
-                <p style={{ fontSize: '0.85rem', marginBottom: '16px' }}>Scan every 7 days to track real improvement.</p>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => (
-                    <div key={d} style={{
-                      flex: 1, textAlign: 'center', padding: '6px 0',
-                      background: i === 5 ? 'var(--gold-glow)' : 'var(--glass-bg)',
-                      border: `1px solid ${i === 5 ? 'var(--gold-border)' : 'var(--border-subtle)'}`,
-                      borderRadius: '6px', fontSize: '0.6rem',
-                      color: i === 5 ? 'var(--gold)' : 'var(--text-dim)',
-                      fontWeight: i === 5 ? 700 : 400,
-                    }}>{d}</div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Quick tips */}
+              {/* Habit Engine */}
               <div className="glass-card" style={{ padding: '24px' }}>
-                <h3 className="font-serif" style={{ fontSize: '1rem', marginBottom: '14px' }}>Today's Reminders</h3>
-                {reminders.map((tip, i) => (
-                  <div key={tip.id} onClick={() => toggleReminder(tip.id)} style={{
-                    display: 'flex', alignItems: 'center', gap: '10px',
-                    padding: '8px 0', cursor: 'pointer',
-                    borderBottom: i < reminders.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-                  }}>
-                    <span style={{ fontSize: '1rem' }}>{tip.icon}</span>
-                    <span style={{
-                      fontSize: '0.83rem', flex: 1, transition: 'all 0.2s',
-                      color: tip.done ? 'var(--text-muted)' : 'var(--text-primary)',
-                      textDecoration: tip.done ? 'line-through' : 'none',
-                    }}>{tip.text}</span>
-                    <div style={{
-                      width: '18px', height: '18px', borderRadius: '50%',
-                      border: `1.5px solid ${tip.done ? 'var(--score-good)' : 'var(--border-color)'}`,
-                      background: tip.done ? 'var(--score-good)' : 'transparent',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transition: 'all 0.2s'
-                    }}>
-                      {tip.done && <span style={{ color: '#fff', fontSize: '0.6rem', fontWeight: 'bold' }}>✓</span>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 className="font-serif" style={{ fontSize: '1.1rem' }}>Habit Tracker</h3>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Daily</span>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* AM Routine */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                       <input type="checkbox" checked={habits.am.active} onChange={e => setHabits({ ...habits, am: { ...habits.am, active: e.target.checked } })} style={{ transform: 'scale(1.2)', accentColor: '#9B82FF' }} />
+                       <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>☀️ Morning Routine</span>
                     </div>
+                    <input type="time" value={habits.am.time} onChange={e => setHabits({ ...habits, am: { ...habits.am, time: e.target.value } })} style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '4px 8px', fontSize: '0.8rem' }} />
                   </div>
-                ))}
+                  
+                  {/* PM Routine */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                       <input type="checkbox" checked={habits.pm.active} onChange={e => setHabits({ ...habits, pm: { ...habits.pm, active: e.target.checked } })} style={{ transform: 'scale(1.2)', accentColor: '#9B82FF' }} />
+                       <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>🌙 Night Routine</span>
+                    </div>
+                    <input type="time" value={habits.pm.time} onChange={e => setHabits({ ...habits, pm: { ...habits.pm, time: e.target.value } })} style={{ background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '4px 8px', fontSize: '0.8rem' }} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Disclaimer */}
-          <div style={{ marginTop: '40px', padding: '16px 20px', background: 'var(--glass-bg)', border: '1px solid var(--border-color)', borderRadius: '10px', textAlign: 'center' }}>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
-              ⚠️ scanmyface.ai is a cosmetic analysis tool and does not constitute medical advice. Consult a qualified dermatologist for medical concerns.
-            </p>
-          </div>
         </div>
       </div>
-
       <Footer />
     </main>
   );

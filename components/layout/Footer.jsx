@@ -24,31 +24,40 @@ export default function Footer() {
           </p>
         </div>
 
-        {/* Product links */}
-        <div>
-          <h4 style={{ fontFamily: "'Inter', sans-serif", fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '16px' }}>
-            Product
-          </h4>
-          {['Skin Scanner', 'Ingredient Guide', 'Product Picks', 'Daily Routines'].map(item => (
-            <a key={item} href="#" style={{ display: 'block', fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '10px', transition: 'color 0.3s' }}
-              onMouseEnter={e => e.target.style.color = 'var(--gold)'}
-              onMouseLeave={e => e.target.style.color = 'var(--text-secondary)'}>
-              {item}
-            </a>
-          ))}
-        </div>
-
         {/* Company links */}
         <div>
           <h4 style={{ fontFamily: "'Inter', sans-serif", fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '16px' }}>
             Company
           </h4>
-          {['About', 'Blog', 'Careers', 'Contact'].map(item => (
-            <a key={item} href="#" style={{ display: 'block', fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '10px', transition: 'color 0.3s' }}
+          {[
+            { n: 'About', path: '/about' },
+            { n: 'Blog', path: '/blog' },
+            { n: 'Careers', path: '/careers' },
+            { n: 'Contact', path: '/contact' }
+          ].map(item => (
+            <Link key={item.n} href={item.path} style={{ display: 'block', fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '10px', transition: 'color 0.3s' }}
               onMouseEnter={e => e.target.style.color = 'var(--gold)'}
               onMouseLeave={e => e.target.style.color = 'var(--text-secondary)'}>
-              {item}
-            </a>
+              {item.n}
+            </Link>
+          ))}
+        </div>
+
+        {/* Legal links */}
+        <div>
+          <h4 style={{ fontFamily: "'Inter', sans-serif", fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '16px' }}>
+            Legal
+          </h4>
+          {[
+            { n: 'Privacy Policy', path: '/privacy' },
+            { n: 'Terms & Conditions', path: '/terms' },
+            { n: 'Cookies Policy', path: '/cookies' }
+          ].map(item => (
+            <Link key={item.n} href={item.path} style={{ display: 'block', fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '10px', transition: 'color 0.3s' }}
+              onMouseEnter={e => e.target.style.color = 'var(--gold)'}
+              onMouseLeave={e => e.target.style.color = 'var(--text-secondary)'}>
+              {item.n}
+            </Link>
           ))}
         </div>
 
@@ -76,12 +85,16 @@ export default function Footer() {
           © 2026 scanmyface.ai — All rights reserved.
         </p>
         <div style={{ display: 'flex', gap: '24px' }}>
-          {['Privacy', 'Terms', 'Cookies'].map(item => (
-            <a key={item} href="#" style={{ fontSize: '0.78rem', color: 'var(--text-muted)', transition: 'color 0.3s' }}
+          {[
+            { n: 'Privacy', path: '/privacy' },
+            { n: 'Terms', path: '/terms' },
+            { n: 'Cookies', path: '/cookies' }
+          ].map(item => (
+            <Link key={item.n} href={item.path} style={{ fontSize: '0.78rem', color: 'var(--text-muted)', transition: 'color 0.3s' }}
               onMouseEnter={e => e.target.style.color = 'var(--gold)'}
               onMouseLeave={e => e.target.style.color = 'var(--text-muted)'}>
-              {item}
-            </a>
+              {item.n}
+            </Link>
           ))}
         </div>
       </div>

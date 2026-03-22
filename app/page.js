@@ -214,23 +214,29 @@ export default function HomePage() {
             {/* Premium */}
             <div className="glass-card" style={{
               textAlign: 'left',
-              border: '1px solid var(--gold-border)',
-              boxShadow: 'var(--shadow-gold)',
+              background: 'linear-gradient(180deg, rgba(155, 130, 255, 0.08) 0%, rgba(12, 10, 20, 0.95) 100%)',
+              border: '2px solid var(--gold)',
+              boxShadow: '0 12px 40px rgba(155, 130, 255, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.05)',
               position: 'relative',
+              transform: 'scale(1.05)',
+              zIndex: 1,
             }}>
-              <div className="badge badge-gold" style={{ marginBottom: '16px' }}>Premium ✦</div>
-              <h3 className="font-serif" style={{ fontSize: '2rem', marginBottom: '8px' }}>
-                ₹49<span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontFamily: 'Inter' }}>/mo</span>
+              <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: 'var(--gold)', color: '#fff', padding: '4px 20px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', boxShadow: '0 4px 12px rgba(155, 130, 255, 0.4)' }}>
+                Most Popular
+              </div>
+              <div className="badge badge-gold" style={{ marginBottom: '16px', marginTop: '12px', background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-border)' }}>Premium ✦</div>
+              <h3 className="font-serif" style={{ fontSize: '2.5rem', marginBottom: '8px', color: '#fff' }}>
+                ₹99<span style={{ fontSize: '1.2rem', color: 'var(--text-muted)', fontFamily: 'Inter', fontWeight: 400 }}>/mo</span>
               </h3>
-              <p style={{ marginBottom: '24px', fontSize: '0.92rem' }}>Full skincare intelligence</p>
-              <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
-                {['Everything in Free', 'Full 8-point analysis', 'Complete ingredient guide', 'All product picks', 'AM/PM routines', 'Weekly progress tracking'].map(f => (
-                  <li key={f} style={{ fontSize: '0.88rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--gold)' }}>✦</span> {f}
+              <p style={{ marginBottom: '24px', fontSize: '0.95rem', color: '#BCA8FF', borderBottom: '1px solid rgba(155,130,255,0.2)', paddingBottom: '20px' }}>Full skincare intelligence & unlimited access</p>
+              <ul style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '32px' }}>
+                {['Unlimited Face Scans', 'Detailed Downloadable PDF Reports', 'Product Compatibility Check Engine', 'Smart Progress Tracking', 'Interactive AM/PM Habit Engine'].map(f => (
+                  <li key={f} style={{ fontSize: '0.92rem', display: 'flex', gap: '10px', alignItems: 'flex-start', color: 'var(--text-primary)' }}>
+                    <span style={{ color: 'var(--gold)', fontSize: '1.1rem', lineHeight: 1 }}>✦</span> {f}
                   </li>
                 ))}
               </ul>
-              <Link href="/signup" className="btn btn-gold" style={{ width: '100%', justifyContent: 'center' }}>Get Premium ✦</Link>
+              <Link href="/signup" className="btn btn-gold" style={{ width: '100%', justifyContent: 'center', padding: '16px', fontSize: '1.05rem', background: 'linear-gradient(135deg, var(--gold), #5B3FD1)', border: 'none', color: '#fff', fontWeight: 700 }}>Upgrade to Premium</Link>
             </div>
           </div>
         </div>
