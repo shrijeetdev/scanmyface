@@ -226,19 +226,71 @@ export default function ScanPage() {
     handleFile(e.dataTransfer.files[0]);
   }, [handleFile]);
 
+  /* ─── Image Compression Utility ─── */
+  const compressImage = async (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          // Scale down if larger than 800px width
+          if (width > 800) {
+            height = Math.round((height * 800) / width);
+            width = 800;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", { type: 'image/jpeg' }));
+          }, 'image/jpeg', 0.8);
+        };
+      };
+    });
+  };
+
   /* ─── Analyze ─── */
-  const saveScanToDb = async (report) => {
+  const saveScanToDb = async (report, imageFile) => {
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return; // guest — skip saving
       
+      let uploadedUrl = null;
+
+      if (imageFile) {
+        try {
+          const compressedFile = await compressImage(imageFile);
+          const fileName = `${user.id}/${Date.now()}.jpg`;
+          
+          const { data, error } = await supabase.storage
+            .from('scan-images')
+            .upload(fileName, compressedFile, { upsert: true });
+            
+          if (!error && data) {
+            const { data: publicUrlData } = supabase.storage
+              .from('scan-images')
+              .getPublicUrl(fileName);
+            uploadedUrl = publicUrlData.publicUrl;
+          }
+        } catch (uploadObjErr) {
+          console.error("Storage upload error", uploadObjErr);
+        }
+      }
+
       // Save the scan
       await supabase.from('scans').insert({
         user_id: user.id,
         score: report.score,
         score_label: report.scoreLabel,
         issues_json: report.detectedIssues,
+        image_url: uploadedUrl,
       });
 
       // Save/upsert the user profile properties implicitly
@@ -275,7 +327,7 @@ export default function ScanPage() {
       sessionStorage.setItem('scanReport', JSON.stringify(report));
       sessionStorage.setItem('scanImageUrl', image.url);
       sessionStorage.setItem('lifestyleData', JSON.stringify(answers));
-      await saveScanToDb(report);
+      await saveScanToDb(report, image.file);
       clearInterval(stageInterval);
       setStageIndex(SCAN_STAGES.length - 1);
       setTimeout(() => router.push('/results'), 800);
@@ -309,7 +361,7 @@ export default function ScanPage() {
       sessionStorage.setItem('scanReport', JSON.stringify(report));
       sessionStorage.setItem('scanImageUrl', url);
       sessionStorage.setItem('lifestyleData', JSON.stringify(answers));
-      await saveScanToDb(report);
+      await saveScanToDb(report, file);
       clearInterval(stageInterval);
       setStageIndex(SCAN_STAGES.length - 1);
       setTimeout(() => router.push('/results'), 800);
