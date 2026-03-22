@@ -19,8 +19,8 @@ function isSkinPixel(r, g, b) {
 
 const CAPTURE_STEPS = [
   { id: 'front', label: 'Look Straight', instruction: 'Position your face in the center', icon: '👤', angle: 0 },
-  { id: 'left',  label: 'Turn Left',     instruction: 'Slowly turn your head left',       icon: '←',  angle: -30 },
-  { id: 'right', label: 'Turn Right',    instruction: 'Slowly turn your head right',      icon: '→',  angle: 30 },
+  { id: 'left',  label: 'Turn Left',     instruction: 'Turn head left. Tap to capture.',       icon: '←',  angle: -30 },
+  { id: 'right', label: 'Turn Right',    instruction: 'Turn head right. Tap to capture.',      icon: '→',  angle: 30 },
 ];
 
 export default function FaceScan360({ onComplete, onCancel }) {
@@ -168,7 +168,9 @@ export default function FaceScan360({ onComplete, onCancel }) {
       
       if (percent > 20) {
         setFaceDetected(true);
-        handleCapture();
+        if (currentStep === 0) {
+          handleCapture();
+        }
       } else {
         setFaceDetected(false);
       }
@@ -406,9 +408,14 @@ export default function FaceScan360({ onComplete, onCancel }) {
             }}>
               {(faceDetected || countingDown) ? '✓ Face Detected!' : step.instruction}
             </p>
-            {(!countingDown && !faceDetected) && (
+            {!countingDown && currentStep === 0 && !faceDetected && (
               <div style={{ fontSize: '0.72rem', color: '#9B82FF', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '16px', animation: 'pulse-accent 1.5s infinite auto-reverse' }}>
                 Auto-Capture is ON — Align your face into the circle
+              </div>
+            )}
+            {!countingDown && currentStep > 0 && faceDetected && (
+              <div style={{ fontSize: '0.72rem', color: '#4CAF50', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '16px' }}>
+                Perfect! Tap the camera button below
               </div>
             )}
 

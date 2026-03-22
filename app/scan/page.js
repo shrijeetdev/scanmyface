@@ -144,7 +144,10 @@ export default function ScanPage() {
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          router.push('/signup?redirect=/scan');
+          return;
+        }
 
         const { data: profile, error } = await supabase
           .from('profiles')

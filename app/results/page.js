@@ -149,6 +149,68 @@ function SectionHeader({ number, title, subtitle, icon }) {
   );
 }
 
+function AccordionSection({ number, title, subtitle, icon, children, defaultOpen = false, pdfIgnore = false }) {
+  return (
+    <details 
+      open={defaultOpen}
+      data-html2canvas-ignore={pdfIgnore ? "true" : undefined}
+      style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '16px',
+        marginBottom: '16px',
+        overflow: 'hidden',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+      }}
+    >
+      <summary style={{
+        padding: '20px 24px',
+        cursor: 'pointer',
+        listStyle: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        userSelect: 'none',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{
+            width: '42px', height: '42px', borderRadius: '50%',
+            background: 'var(--gold-bg)', border: '1px solid var(--gold-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1.2rem', flexShrink: 0
+          }}>{icon}</div>
+          <div>
+            <h3 className="font-serif" style={{ fontSize: '1.1rem', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {title}
+              <span style={{
+                fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em',
+                color: 'var(--gold)', background: 'var(--gold-bg)',
+                border: '1px solid var(--gold-border)',
+                borderRadius: '999px', padding: '2px 8px',
+              }}>
+                SEC {number}
+              </span>
+            </h3>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{subtitle}</p>
+          </div>
+        </div>
+        <div className="accordion-arrow" style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>
+          ▼
+        </div>
+      </summary>
+      <div style={{ padding: '0 24px 24px', borderTop: '1px solid var(--border-color)' }}>
+        <div style={{ paddingTop: '24px' }}>
+          {children}
+        </div>
+      </div>
+      <style>{`
+        details > summary::-webkit-details-marker { display: none; }
+        details[open] .accordion-arrow { transform: rotate(180deg); color: var(--gold); }
+      `}</style>
+    </details>
+  );
+}
+
 function AuthGateOverlay() {
   return (
     <div style={{
@@ -227,8 +289,21 @@ export default function ResultsPage() {
 
   const handleDownloadPDF = async () => {
     setIsExporting(true);
-    await exportReportToPDF('scan-report-area', 'ScanMyFace_AI_Report.pdf');
-    setIsExporting(false);
+    // Expand all accordions right before exporting so content is captured
+    const details = document.querySelectorAll('details');
+    details.forEach(d => {
+      if(!d.hasAttribute('data-html2canvas-ignore')) {
+        d.setAttribute('open', '');
+      }
+    });
+    
+    // Wait for render
+    setTimeout(async () => {
+       await exportReportToPDF('scan-report-area', 'ScanMyFace_AI_Report.pdf');
+       setIsExporting(false);
+       // Collapse them back
+       details.forEach(d => d.removeAttribute('open'));
+    }, 500);
   };
 
   return (
@@ -353,15 +428,11 @@ export default function ResultsPage() {
       <div style={{ position: 'relative' }}>
         {showGated && <AuthGateOverlay />}
 
-        <div style={{ filter: showGated ? 'blur(6px)' : 'none', pointerEvents: showGated ? 'none' : 'auto' }}>
+        <div style={{ filter: showGated ? 'blur(6px)' : 'none', pointerEvents: showGated ? 'none' : 'auto', padding: '0 24px 48px' }}>
+          <div className="container-sm">
 
-          {/* ═══════ SECTION 3: Detected Issues ═══════ */}
-          <section style={{ padding: '0 24px 48px' }}>
-            <div className="container-sm">
-              <SectionDivider />
-              <ScrollReveal>
-                <SectionHeader number="3" title="Detailed Analysis" subtitle="Problems identified with severity and confidence" icon="🔍" />
-              </ScrollReveal>
+            {/* ═══════ SECTION 3: Detected Issues ═══════ */}
+            <AccordionSection number="3" title="Detailed Analysis" subtitle="Problems identified with severity and confidence" icon="🔍">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {report.detectedIssues.length === 0 && (
                   <p style={{ color: 'var(--score-good)' }}>No significant issues detected. Your skin looks great!</p>
@@ -394,17 +465,11 @@ export default function ResultsPage() {
                   </ScrollReveal>
                 ))}
               </div>
-            </div>
-          </section>
+            </AccordionSection>
 
-          {/* ═══════ SECTION 4: Root Causes ═══════ */}
-          {report.rootCauses && report.rootCauses.length > 0 && (
-            <section style={{ padding: '0 24px 48px' }}>
-              <div className="container-sm">
-                <SectionDivider />
-                <ScrollReveal>
-                  <SectionHeader number="4" title="Root Cause Analysis" subtitle="What's impacting your skin from the inside" icon="🧠" />
-                </ScrollReveal>
+            {/* ═══════ SECTION 4: Root Causes ═══════ */}
+            {report.rootCauses && report.rootCauses.length > 0 && (
+              <AccordionSection number="4" title="Root Cause Analysis" subtitle="What's impacting your skin from the inside" icon="🧠">
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
                   {report.rootCauses.map((cause, idx) => {
                     const barColor = cause.score >= 70 ? 'var(--score-good)' : cause.score >= 45 ? '#E65100' : 'var(--score-poor)';
@@ -449,18 +514,11 @@ export default function ResultsPage() {
                     );
                   })}
                 </div>
-              </div>
-            </section>
-          )}
+              </AccordionSection>
+            )}
 
-          {/* ═══════ SECTION 5: Recommended Routine ═══════ */}
-          <section style={{ padding: '0 24px 48px' }}>
-            <div className="container-sm">
-              <SectionDivider />
-              <ScrollReveal>
-                <SectionHeader number="5" title="Your Daily Routine" subtitle="Personalised AM and PM routines for your skin" icon="📋" />
-              </ScrollReveal>
-
+            {/* ═══════ SECTION 5: Recommended Routine ═══════ */}
+            <AccordionSection number="5" title="Your Daily Routine" subtitle="Personalised AM and PM routines for your skin" icon="📋">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
                 <ScrollReveal delay={100}>
                   <div>
@@ -536,18 +594,10 @@ export default function ResultsPage() {
               <ScrollReveal delay={300}>
                 <HabitEngine />
               </ScrollReveal>
+            </AccordionSection>
 
-            </div>
-          </section>
-
-          {/* ═══════ SECTION 6: Products + Ingredients ═══════ */}
-          <section style={{ padding: '0 24px 48px' }}>
-            <div className="container-sm">
-              <SectionDivider />
-              <ScrollReveal>
-                <SectionHeader number="6" title="Products & Ingredients" subtitle="Science-backed actives matched to your issues" icon="🧪" />
-              </ScrollReveal>
-
+            {/* ═══════ SECTION 6: Products & Ingredients ═══════ */}
+            <AccordionSection number="6" title="Products & Ingredients" subtitle="Science-backed actives matched to your issues" icon="🧪">
               {report.detectedIssues.map(issue => {
                 const ings = report.ingredients[issue.id] || [];
                 if (!ings.length) return null;
@@ -585,75 +635,73 @@ export default function ResultsPage() {
               })}
 
               <ScrollReveal>
-                <h3 className="font-serif" style={{ fontSize: '1.2rem', marginBottom: '16px', marginTop: '16px' }}>
-                  Recommended Products
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
-                  {report.products.map(p => (
-                    <div key={p.id} className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--gold)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '4px' }}>{p.brand}</div>
-                          <h4 className="font-serif" style={{ fontSize: '0.95rem', lineHeight: 1.3 }}>{p.name}</h4>
+                <div data-html2canvas-ignore="true">
+                  <h3 className="font-serif" style={{ fontSize: '1.2rem', marginBottom: '16px', marginTop: '16px' }}>
+                    Recommended Products
+                  </h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                    {report.products.map(p => (
+                      <div key={p.id} className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--gold)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '4px' }}>{p.brand}</div>
+                            <h4 className="font-serif" style={{ fontSize: '0.95rem', lineHeight: 1.3 }}>{p.name}</h4>
+                          </div>
+                          <span className="badge badge-gold" style={{ flexShrink: 0, marginLeft: '8px' }}>{p.tier}</span>
                         </div>
-                        <span className="badge badge-gold" style={{ flexShrink: 0, marginLeft: '8px' }}>{p.tier}</span>
-                      </div>
-                      <p style={{ fontSize: '0.83rem', lineHeight: 1.55 }}>{p.whyRecommended}</p>
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                        background: 'var(--glass-bg)', borderRadius: '8px', padding: '8px 10px',
-                      }}>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Key Active:</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--gold)', fontWeight: 500 }}>{p.keyIngredient}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                        <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '1.1rem', color: 'var(--gold)', fontWeight: 700 }}>
-                          ₹{p.price.toLocaleString('en-IN')}
-                        </span>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <a href={p.amazonUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" style={{ padding: '6px 12px', fontSize: '0.72rem' }}>Amazon →</a>
-                          <a href={p.nykaaUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm" style={{ padding: '6px 12px', fontSize: '0.72rem' }}>Nykaa →</a>
+                        <p style={{ fontSize: '0.83rem', lineHeight: 1.55 }}>{p.whyRecommended}</p>
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          background: 'var(--glass-bg)', borderRadius: '8px', padding: '8px 10px',
+                        }}>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Key Active:</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--gold)', fontWeight: 500 }}>{p.keyIngredient}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                          <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '1.1rem', color: 'var(--gold)', fontWeight: 700 }}>
+                            ₹{p.price.toLocaleString('en-IN')}
+                          </span>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <a href={p.amazonUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" style={{ padding: '6px 12px', fontSize: '0.72rem' }}>Amazon →</a>
+                            <a href={p.nykaaUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm" style={{ padding: '6px 12px', fontSize: '0.72rem' }}>Nykaa →</a>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </ScrollReveal>
-            </div>
-          </section>
-          
-          {/* ═══════ SECTION 7: Product Checker Moved Here ═══════ */}
-          <section style={{ padding: '0 24px 48px' }}>
-            <div className="container-sm">
-              <SectionDivider />
+            </AccordionSection>
+            
+            {/* ═══════ SECTION 7: Product Checker Moved Here ═══════ */}
+            <AccordionSection number="7" title="Product Check" subtitle="Upload your current products to check compatibility" icon="🧴" pdfIgnore={true}>
               <ScrollReveal>
-                <SectionHeader number="7" title="Product Check" subtitle="Upload your current products to check compatibility" icon="🧴" />
+                <div style={{ paddingBottom: '10px' }} />
                 <RoutineAnalyzer detectedIssues={report.issues || []} />
               </ScrollReveal>
-            </div>
-          </section>
+            </AccordionSection>
 
-          {/* ═══════ Medical Disclaimer ═══════ */}
-          <section style={{ padding: '0 24px 48px' }}>
-            <div className="container-sm">
-              <SectionDivider />
-              <div style={{
-                background: 'var(--glass-bg)', border: '1px solid var(--border-color)',
-                borderRadius: '10px', padding: '16px 20px',
-              }}>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic', lineHeight: 1.6 }}>
-                  ⚠️ <strong style={{ color: 'var(--text-secondary)' }}>Medical Disclaimer:</strong> This report
-                  is generated by AI for informational purposes only. It is not a medical diagnosis. Results are based
-                  on image analysis and self-reported lifestyle data. Consult a board-certified dermatologist for
-                  persistent or severe skin conditions.
-                </p>
-              </div>
-            </div>
-          </section>
-
+          </div>
         </div>
       </div>
-      </div>
+      
+      {/* ═══════ Medical Disclaimer ═══════ */}
+      <section style={{ padding: '0 24px 48px' }}>
+        <div className="container-sm">
+          <SectionDivider />
+          <div style={{
+            background: 'var(--glass-bg)', border: '1px solid var(--border-color)',
+            borderRadius: '10px', padding: '16px 20px',
+          }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic', lineHeight: 1.6 }}>
+              ⚠️ <strong style={{ color: 'var(--text-secondary)' }}>Medical Disclaimer:</strong> This report
+              is generated by AI for informational purposes only. It is not a medical diagnosis. Results are based
+              on image analysis and self-reported lifestyle data. Consult a board-certified dermatologist for
+              persistent or severe skin conditions.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* ═══════ New Download & Navigation Layout (BOTTOM) ═══════ */}
       <section style={{

@@ -215,9 +215,9 @@ export default function HomePage() {
             {/* Premium */}
             <div className="glass-card" style={{
               textAlign: 'left',
-              background: 'linear-gradient(180deg, rgba(124, 92, 255, 0.15) 0%, #1A1A22 100%)',
+              background: 'linear-gradient(180deg, var(--gold-bg) 0%, var(--bg-card) 100%)',
               border: '2px solid var(--gold)',
-              boxShadow: '0 12px 40px rgba(124, 92, 255, 0.3)',
+              boxShadow: '0 12px 40px rgba(124, 92, 255, 0.15)',
               position: 'relative',
               transform: 'scale(1.05)',
               zIndex: 1,
@@ -226,13 +226,13 @@ export default function HomePage() {
                 Most Popular
               </div>
               <div className="badge badge-gold" style={{ marginBottom: '16px', marginTop: '12px' }}>Premium ✦</div>
-              <h3 className="font-serif" style={{ fontSize: '2.5rem', marginBottom: '8px', color: '#fff' }}>
+              <h3 className="font-serif" style={{ fontSize: '2.5rem', marginBottom: '8px', color: 'var(--text-primary)' }}>
                 ₹99<span style={{ fontSize: '1.2rem', color: 'var(--text-muted)', fontFamily: 'Inter', fontWeight: 400 }}>/mo</span>
               </h3>
-              <p style={{ marginBottom: '24px', fontSize: '0.95rem', color: '#E5E7EB', borderBottom: '1px solid var(--border-color)', paddingBottom: '20px' }}>Full skincare intelligence & unlimited access</p>
+              <p style={{ marginBottom: '24px', fontSize: '0.95rem', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '20px' }}>Full skincare intelligence & unlimited access</p>
               <ul style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '32px' }}>
                 {['Unlimited Face Scans', 'Detailed Downloadable PDF Reports', 'Product Compatibility Check Engine', 'Smart Progress Tracking', 'Interactive AM/PM Habit Engine'].map(f => (
-                  <li key={f} style={{ fontSize: '0.95rem', display: 'flex', gap: '10px', alignItems: 'flex-start', color: '#FFFFFF', fontWeight: 500 }}>
+                  <li key={f} style={{ fontSize: '0.95rem', display: 'flex', gap: '10px', alignItems: 'flex-start', color: 'var(--text-primary)', fontWeight: 500 }}>
                     <span style={{ color: 'var(--gold)', fontSize: '1.2rem', lineHeight: 1 }}>✦</span> {f}
                   </li>
                 ))}
