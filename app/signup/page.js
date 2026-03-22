@@ -123,7 +123,7 @@ export default function SignupPage() {
                   <p style={{ fontSize: '0.88rem' }}>Free forever. No card required.</p>
                 </div>
 
-                <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center', marginBottom: '20px', gap: '10px' }}
+                <button className="btn btn-outline" style={{ width: '100%', justifyContent: 'center', marginBottom: '20px', gap: '10px' }}
                   onClick={() => { sessionStorage.setItem('userProfile', JSON.stringify(form)); router.push('/scan'); }}>
                   <svg width="18" height="18" viewBox="0 0 48 48">
                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -155,7 +155,7 @@ export default function SignupPage() {
                   </div>
                 </div>
 
-                <button className="btn btn-gold" style={{ width: '100%', justifyContent: 'center', marginTop: '24px' }} onClick={handleNext}>Continue →</button>
+                <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '24px' }} onClick={handleNext}>Continue →</button>
                 <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                   Already have an account? <Link href="/login" style={{ color: 'var(--gold)' }}>Sign in</Link>
                 </p>
@@ -209,8 +209,8 @@ export default function SignupPage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setStep(1)}>← Back</button>
-                  <button className="btn btn-gold" style={{ flex: 2, justifyContent: 'center' }} onClick={handleNext}>Continue →</button>
+                  <button className="btn btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setStep(1)}>← Back</button>
+                  <button className="btn btn-primary" style={{ flex: 2, justifyContent: 'center' }} onClick={handleNext}>Continue →</button>
                 </div>
               </div>
             )}
@@ -257,8 +257,8 @@ export default function SignupPage() {
                 )}
 
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <button type="button" className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setStep(2)}>← Back</button>
-                  <button type="submit" className="btn btn-gold" style={{ flex: 2, justifyContent: 'center' }} disabled={loading}>
+                  <button type="button" className="btn btn-outline" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setStep(2)}>← Back</button>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 2, justifyContent: 'center' }} disabled={loading}>
                     {loading ? 'Creating account…' : '✦ Start My First Scan'}
                   </button>
                 </div>

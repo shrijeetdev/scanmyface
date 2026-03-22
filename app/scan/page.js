@@ -165,9 +165,11 @@ export default function ScanPage() {
           Object.keys(loadedAnswers).forEach(k => !loadedAnswers[k] && delete loadedAnswers[k]);
           setAnswers(loadedAnswers);
           
-          // Skip entirely if main questions exist
+          // Skip entirely if main questions exist AND instantly trigger camera
           if (profile.skin_type && profile.age_group) {
-            setStep(3); // Jump to Choose Scan Mode
+            setStep(3); 
+            setScanMode('360');
+            setShow360Camera(true);
           }
         }
       } catch (err) {
@@ -293,9 +295,8 @@ export default function ScanPage() {
         image_url: uploadedUrl,
       });
 
-      // Save/upsert the user profile properties implicitly
-      await supabase.from('profiles').upsert({
-        id: user.id,
+      // Update the user profile properties implicitly
+      await supabase.from('profiles').update({
         updated_at: new Date().toISOString(),
         skin_type: answers.skinType,
         age_group: answers.ageGroup,
@@ -303,7 +304,7 @@ export default function ScanPage() {
         sleep: answers.sleep,
         water_intake: answers.water,
         diet: answers.diet
-      });
+      }).eq('id', user.id);
     } catch (e) {
       console.error("Error saving scan/profile to DB:", e);
     }
@@ -482,7 +483,7 @@ export default function ScanPage() {
               </div>
 
               <button
-                className="btn btn-gold btn-lg"
+                className="btn btn-primary btn-lg"
                 style={{
                   width: '100%', marginTop: '32px',
                   opacity: coreComplete ? 1 : 0.4,
@@ -528,12 +529,12 @@ export default function ScanPage() {
                     Takes about 15 seconds.
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <button className="btn btn-gold" style={{ width: '100%', justifyContent: 'center' }}
+                    <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}
                       onClick={() => setShowOptional(true)}
                     >
                       ✦ Yes, Improve My Accuracy
                     </button>
-                    <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}
+                    <button className="btn btn-outline" style={{ width: '100%', justifyContent: 'center' }}
                       onClick={handleSkipOptional}
                     >
                       Skip → Upload Photo
@@ -582,12 +583,12 @@ export default function ScanPage() {
                   </div>
 
                   <div style={{ display: 'flex', gap: '12px', marginTop: '28px' }}>
-                    <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }}
+                    <button className="btn btn-outline" style={{ flex: 1, justifyContent: 'center' }}
                       onClick={() => setStep(1)}
                     >
                       ← Back
                     </button>
-                    <button className="btn btn-gold" style={{ flex: 2, justifyContent: 'center' }}
+                    <button className="btn btn-primary" style={{ flex: 2, justifyContent: 'center' }}
                       onClick={handleOptionalNext}
                     >
                       Continue → Upload Photo
@@ -598,7 +599,7 @@ export default function ScanPage() {
 
               {!showOptional && (
                 <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setStep(1)}>
+                  <button className="btn btn-outline btn-sm" onClick={() => setStep(1)}>
                     ← Back to Questions
                   </button>
                 </div>
@@ -692,7 +693,7 @@ export default function ScanPage() {
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setStep(2)}>
+                    <button className="btn btn-outline btn-sm" onClick={() => setStep(2)}>
                       ← Back
                     </button>
                   </div>
@@ -766,7 +767,7 @@ export default function ScanPage() {
                       </span>
                     </div>
                     <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center', gap: '12px' }}>
-                      <button className="btn btn-ghost btn-sm"
+                      <button className="btn btn-outline btn-sm"
                         onClick={() => { setImage(null); setError(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}>
                         ↩ Use Different Photo
                       </button>
@@ -795,7 +796,7 @@ export default function ScanPage() {
 
               {/* Camera button */}
               <div style={{ textAlign: 'center', margin: '16px 0' }}>
-                <button className="btn btn-ghost" onClick={() => fileInputRef.current?.click()}
+                <button className="btn btn-outline" onClick={() => fileInputRef.current?.click()}
                   style={{ width: '100%' }} disabled={validating}>
                   📷 Open Camera
                 </button>
@@ -862,12 +863,12 @@ export default function ScanPage() {
 
               {/* Action buttons */}
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }}
+                <button className="btn btn-outline" style={{ flex: 1, justifyContent: 'center' }}
                   onClick={() => setStep(showOptional ? 2 : 2)}>
                   ← Back
                 </button>
                 <button
-                  className="btn btn-gold btn-lg"
+                  className="btn btn-primary btn-lg"
                   style={{
                     flex: 2, justifyContent: 'center',
                     opacity: image ? 1 : 0.4,

@@ -194,7 +194,7 @@ export default function FaceScan360({ onComplete, onCancel }) {
         <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📷</div>
         <h3 className="font-serif" style={{ fontSize: '1.2rem', marginBottom: '8px' }}>Camera Access Required</h3>
         <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '24px' }}>{cameraError}</p>
-        <button className="btn btn-ghost" onClick={onCancel}>← Go Back</button>
+        <button className="btn btn-outline" onClick={onCancel}>← Go Back</button>
       </div>
     );
   }

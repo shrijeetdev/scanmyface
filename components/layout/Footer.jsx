@@ -69,7 +69,7 @@ export default function Footer() {
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>Get skincare tips and product launches.</p>
           <div style={{ display: 'flex', gap: '8px' }}>
             <input type="email" placeholder="Your email" className="input" style={{ flex: 1, padding: '0.65rem 1rem', fontSize: '0.85rem' }} />
-            <button className="btn btn-gold btn-sm">→</button>
+            <button className="btn btn-primary btn-sm">→</button>
           </div>
         </div>
       </div>

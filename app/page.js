@@ -59,10 +59,10 @@ export default function HomePage() {
           </p>
 
           <div className="anim-fadeInUp delay-3" style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
-            <Link href="/scan" className="btn btn-gold btn-lg">
+            <Link href="/scan" className="btn btn-primary btn-lg">
               Scan My Face Free ✦
             </Link>
-            <Link href="#how-it-works" className="btn btn-ghost btn-lg">
+            <Link href="#how-it-works" className="btn btn-outline btn-lg">
               How it Works ↓
             </Link>
           </div>
@@ -209,34 +209,35 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/scan" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>Start Free</Link>
+              <Link href="/scan" className="btn btn-outline" style={{ width: '100%', justifyContent: 'center' }}>Start Free</Link>
             </div>
+            {/* Premium */}
             {/* Premium */}
             <div className="glass-card" style={{
               textAlign: 'left',
-              background: 'linear-gradient(180deg, rgba(155, 130, 255, 0.08) 0%, rgba(12, 10, 20, 0.95) 100%)',
+              background: 'linear-gradient(180deg, rgba(124, 92, 255, 0.15) 0%, #1A1A22 100%)',
               border: '2px solid var(--gold)',
-              boxShadow: '0 12px 40px rgba(155, 130, 255, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              boxShadow: '0 12px 40px rgba(124, 92, 255, 0.3)',
               position: 'relative',
               transform: 'scale(1.05)',
               zIndex: 1,
             }}>
-              <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: 'var(--gold)', color: '#fff', padding: '4px 20px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', boxShadow: '0 4px 12px rgba(155, 130, 255, 0.4)' }}>
+              <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: 'var(--gold)', color: '#fff', padding: '6px 24px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', boxShadow: '0 4px 16px rgba(124, 92, 255, 0.5)' }}>
                 Most Popular
               </div>
-              <div className="badge badge-gold" style={{ marginBottom: '16px', marginTop: '12px', background: 'var(--gold-bg)', color: 'var(--gold)', border: '1px solid var(--gold-border)' }}>Premium ✦</div>
+              <div className="badge badge-gold" style={{ marginBottom: '16px', marginTop: '12px' }}>Premium ✦</div>
               <h3 className="font-serif" style={{ fontSize: '2.5rem', marginBottom: '8px', color: '#fff' }}>
                 ₹99<span style={{ fontSize: '1.2rem', color: 'var(--text-muted)', fontFamily: 'Inter', fontWeight: 400 }}>/mo</span>
               </h3>
-              <p style={{ marginBottom: '24px', fontSize: '0.95rem', color: '#BCA8FF', borderBottom: '1px solid rgba(155,130,255,0.2)', paddingBottom: '20px' }}>Full skincare intelligence & unlimited access</p>
+              <p style={{ marginBottom: '24px', fontSize: '0.95rem', color: '#E5E7EB', borderBottom: '1px solid var(--border-color)', paddingBottom: '20px' }}>Full skincare intelligence & unlimited access</p>
               <ul style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '32px' }}>
                 {['Unlimited Face Scans', 'Detailed Downloadable PDF Reports', 'Product Compatibility Check Engine', 'Smart Progress Tracking', 'Interactive AM/PM Habit Engine'].map(f => (
-                  <li key={f} style={{ fontSize: '0.92rem', display: 'flex', gap: '10px', alignItems: 'flex-start', color: 'var(--text-primary)' }}>
-                    <span style={{ color: 'var(--gold)', fontSize: '1.1rem', lineHeight: 1 }}>✦</span> {f}
+                  <li key={f} style={{ fontSize: '0.95rem', display: 'flex', gap: '10px', alignItems: 'flex-start', color: '#FFFFFF', fontWeight: 500 }}>
+                    <span style={{ color: 'var(--gold)', fontSize: '1.2rem', lineHeight: 1 }}>✦</span> {f}
                   </li>
                 ))}
               </ul>
-              <Link href="/signup" className="btn btn-gold" style={{ width: '100%', justifyContent: 'center', padding: '16px', fontSize: '1.05rem', background: 'linear-gradient(135deg, var(--gold), #5B3FD1)', border: 'none', color: '#fff', fontWeight: 700 }}>Upgrade to Premium</Link>
+              <Link href="/signup" className="btn btn-primary" style={{ width: '100%', padding: '16px', fontSize: '1.05rem', justifyContent: 'center' }}>Upgrade to Premium</Link>
             </div>
           </div>
         </div>
@@ -288,7 +289,7 @@ export default function HomePage() {
           <p style={{ marginBottom: '32px', fontSize: '1.05rem' }}>
             Join thousands of users who\'ve already discovered their skin\'s potential.
           </p>
-          <Link href="/scan" className="btn btn-gold btn-lg">
+          <Link href="/scan" className="btn btn-primary btn-lg">
             Scan My Face Free ✦
           </Link>
         </div>

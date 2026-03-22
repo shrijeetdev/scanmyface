@@ -108,9 +108,9 @@ export default function RoutineAnalyzer({ detectedIssues = [] }) {
   };
 
   const badgeStyles = {
-    good: { bg: 'rgba(76,175,80,0.15)', text: '#81C784', border: 'rgba(76,175,80,0.3)', icon: '✅', label: 'Great Match' },
-    neutral: { bg: 'rgba(255,152,0,0.15)', text: '#FFB74D', border: 'rgba(255,152,0,0.3)', icon: '⚠️', label: 'Neutral' },
-    bad: { bg: 'rgba(244,67,54,0.15)', text: '#EF9A9A', border: 'rgba(244,67,54,0.3)', icon: '❌', label: 'Not Recommended' }
+    good: { bg: 'rgba(76,175,80,0.15)', text: '#81C784', border: 'rgba(76,175,80,0.3)', icon: '✅', label: 'SAFE' },
+    neutral: { bg: 'rgba(255,152,0,0.15)', text: '#FFB74D', border: 'rgba(255,152,0,0.3)', icon: '⚠️', label: 'CAUTION' },
+    bad: { bg: 'rgba(244,67,54,0.15)', text: '#EF9A9A', border: 'rgba(244,67,54,0.3)', icon: '🚫', label: 'AVOID' }
   };
 
   return (
@@ -144,7 +144,7 @@ export default function RoutineAnalyzer({ detectedIssues = [] }) {
         />
         <button 
           type="submit" 
-          className="btn btn-gold" 
+          className="btn btn-primary" 
           style={{ padding: '0 24px', flexShrink: 0, opacity: analyzing ? 0.7 : 1 }}
           disabled={analyzing || !productInput.trim()}
         >

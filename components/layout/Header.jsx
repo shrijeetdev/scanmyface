@@ -11,15 +11,25 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme();
   const { isLoggedIn, user, logout } = useAuth();
   const [headerName, setHeaderName] = useState('My Profile');
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
       import('@/utils/supabase/client').then(({ createClient }) => {
         const supabase = createClient();
-        supabase.from('profiles').select('full_name').eq('id', user.id).single()
-          .then(({ data }) => {
+        supabase.from('profiles').select('*').eq('id', user.id).single()
+          .then(async ({ data }) => {
             if (data?.full_name) {
               setHeaderName(data.full_name);
+            }
+            if (data?.avatar_url) {
+              setAvatarUrl(data.avatar_url);
+            } else {
+              const { data: scans } = await supabase.from('scans').select('image_url').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1);
+              if (scans && scans.length > 0 && scans[0].image_url) {
+                setAvatarUrl(scans[0].image_url);
+              }
             }
           });
       });
@@ -90,30 +100,26 @@ export default function Header() {
             Login
           </Link>
         ) : (
-          <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Link href="/dashboard" style={{
-              fontSize: '0.85rem', color: 'var(--text-secondary)',
-              fontWeight: 500, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '8px'
-            }}>
-              <span style={{
-                width: '22px', height: '22px', borderRadius: '50%', background: 'var(--gold-glow)', border: '1px solid var(--gold)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)',
-                fontWeight: 'bold', fontSize: '0.75rem'
-              }}>
-                {headerName.charAt(0).toUpperCase()}
-              </span>
-              {headerName.split(' ')[0]}
-            </Link>
-            <button onClick={logout} style={{
-              fontSize: '0.85rem', color: 'var(--text-dim)',
-              fontWeight: 500, letterSpacing: '0.04em', background: 'none', border: 'none', cursor: 'pointer', padding: 0
-            }}>
-              Logout
+          <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
+            <button onClick={() => setDropdownOpen(!dropdownOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: 0 }}>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Profile" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--gold)' }} />
+              ) : (
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--gold-glow)', border: '1px solid var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                  {headerName.charAt(0).toUpperCase()}
+                </div>
+              )}
             </button>
+            {dropdownOpen && (
+              <div style={{ position: 'absolute', top: '44px', right: 0, background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '8px 0', minWidth: '160px', boxShadow: 'var(--shadow-gold)', display: 'flex', flexDirection: 'column' }}>
+                <Link href="/dashboard" style={{ padding: '8px 20px', fontSize: '0.85rem', color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 500 }} onClick={() => setDropdownOpen(false)}>Dashboard</Link>
+                <button onClick={() => { setDropdownOpen(false); logout(); }} style={{ textAlign: 'left', padding: '8px 20px', fontSize: '0.85rem', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Logout</button>
+              </div>
+            )}
           </div>
         )}
 
-        <Link href="/scan" className="btn btn-gold btn-sm">
+        <Link href="/scan" className="btn btn-primary btn-sm">
           Scan Free ✦
         </Link>
 

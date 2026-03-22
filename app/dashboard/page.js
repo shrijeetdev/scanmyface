@@ -161,12 +161,16 @@ export default function DashboardPage() {
                   <div><label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Name</label><input type="text" value={editProfile.full_name || ''} onChange={e => setEditProfile({...editProfile, full_name: e.target.value})} className="input" style={{ width: '100%' }} /></div>
                   <div><label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Skin Type</label><select value={editProfile.skin_type || ''} onChange={e => setEditProfile({...editProfile, skin_type: e.target.value})} className="input" style={{ width: '100%' }}><option value="">Select...</option><option value="oily">Oily 💧</option><option value="dry">Dry 🏜</option><option value="combination">Combination ⚖️</option><option value="normal">Normal ✅</option></select></div>
                 </div>
-                <div style={{ display: 'flex', gap: '12px' }}><button className="btn btn-gold" onClick={handleSaveProfile}>Save</button><button className="btn btn-ghost" onClick={() => setIsEditing(false)}>Cancel</button></div>
+                <div style={{ display: 'flex', gap: '12px' }}><button className="btn btn-primary" onClick={handleSaveProfile}>Save</button><button className="btn btn-outline" onClick={() => setIsEditing(false)}>Cancel</button></div>
               </div>
             ) : (
               <>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                  <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--gold-glow)', border: '2px solid var(--gold-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', color: 'var(--gold)', fontWeight: 700 }}>{displayName.charAt(0).toUpperCase()}</div>
+                  {profile?.avatar_url || (history.length > 0 && history[0].imageUrl) ? (
+                    <img src={profile?.avatar_url || history[0].imageUrl} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--gold-border)' }} />
+                  ) : (
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--gold-glow)', border: '2px solid var(--gold-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', color: 'var(--gold)', fontWeight: 700 }}>{displayName.charAt(0).toUpperCase()}</div>
+                  )}
                   <div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--gold)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Welcome back</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '4px 0' }}>
@@ -177,7 +181,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <Link href="/scan" className="btn btn-ghost hide-on-print">✦ New Scan</Link>
+                  <Link href="/scan" className="btn btn-outline hide-on-print">✦ New Scan</Link>
                   <button onClick={handleDownloadReport} disabled={history.length === 0} className="btn hide-on-print" style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)', fontWeight: 700 }}>📥 Download PDF Report</button>
                 </div>
               </>
@@ -200,7 +204,7 @@ export default function DashboardPage() {
             <div className="hide-on-print" style={{ background: '#0A0A0A', padding: '32px', borderRadius: '16px', border: '1px solid var(--gold)', marginBottom: '32px', boxShadow: '0 8px 32px rgba(176,141,62,0.15)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h2 className="font-serif" style={{ fontSize: '1.5rem', color: 'var(--gold)' }}>Skin Progress Visualizer</h2>
-                <button onClick={() => setCompareScans([])} className="btn btn-ghost btn-sm">Close</button>
+                <button onClick={() => setCompareScans([])} className="btn btn-outline btn-sm">Close</button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                 {compareScans.sort((a,b) => new Date(a.date) - new Date(b.date)).map((scan, i) => (
@@ -272,7 +276,7 @@ export default function DashboardPage() {
             <div className="glass-card" style={{ padding: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}><h2 className="font-serif" style={{ fontSize: '1.1rem' }}>Scan History</h2><span className="badge badge-gold">{history.length} scans</span></div>
               {history.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '16px' }}><Link href="/scan" className="btn btn-gold btn-sm">Take First Scan</Link></div>
+                <div style={{ textAlign: 'center', padding: '16px' }}><Link href="/scan" className="btn btn-primary btn-sm">Take First Scan</Link></div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {history.map((scan, i) => (

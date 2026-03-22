@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { createClient } from '@/utils/supabase/client';
 
 /**
  * Habit Engine — Daily Routine Reminders
@@ -12,21 +13,52 @@ export default function HabitEngine() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Check if browser supports notifications
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setPermission(Notification.permission);
-      
-      // Load saved preferences
-      const savedAm = localStorage.getItem('habit_am_enabled') === 'true';
-      const savedPm = localStorage.getItem('habit_am_enabled') === 'true'; // Typo in localstorage key usually, let's fix:
-      const savedPmReal = localStorage.getItem('habit_pm_enabled') === 'true';
-      
-      if (Notification.permission === 'granted') {
-        setAmEnabled(savedAm);
-        setPmEnabled(savedPmReal);
+    const loadHabits = async () => {
+      let savedAm = localStorage.getItem('habit_am_enabled') === 'true';
+      let savedPm = localStorage.getItem('habit_pm_enabled') === 'true';
+
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('habit_settings')
+            .eq('id', user.id)
+            .single();
+          if (profile?.habit_settings) {
+            const hs = profile.habit_settings;
+            savedAm = hs.amEnabled || false;
+            savedPm = hs.pmEnabled || false;
+            localStorage.setItem('habit_am_enabled', savedAm);
+            localStorage.setItem('habit_pm_enabled', savedPm);
+          }
+        }
+      } catch (e) {
+        console.error('Error loading habits', e);
       }
-    }
+
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        setPermission(Notification.permission);
+        setAmEnabled(savedAm);
+        setPmEnabled(savedPm);
+      }
+    };
+    loadHabits();
   }, []);
+
+  const saveHabitToDb = async (am, pm) => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('profiles').update({
+        habit_settings: { amEnabled: am, pmEnabled: pm }
+      }).eq('id', user.id);
+    } catch(e) {
+      console.error('Error saving habits to DB', e);
+    }
+  };
 
   const requestPermissionAndToggle = async (routineType) => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -48,11 +80,13 @@ export default function HabitEngine() {
           const newState = !amEnabled;
           setAmEnabled(newState);
           localStorage.setItem('habit_am_enabled', newState);
+          saveHabitToDb(newState, pmEnabled);
           if (newState) simulatePush('Morning Routine', 'Time for your AM skincare! ☀️');
         } else {
           const newState = !pmEnabled;
           setPmEnabled(newState);
           localStorage.setItem('habit_pm_enabled', newState);
+          saveHabitToDb(amEnabled, newState);
           if (newState) simulatePush('Evening Routine', 'Time to wind down with your PM skincare! 🌙');
         }
       } else {

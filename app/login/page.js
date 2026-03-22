@@ -56,7 +56,7 @@ export default function LoginPage() {
 
           {/* Google Sign-In */}
           <button
-            className="btn btn-ghost"
+            className="btn btn-outline"
             style={{ width: '100%', justifyContent: 'center', marginBottom: '16px', gap: '10px' }}
             onClick={() => { window.location.href = '/dashboard'; }}>
             <svg width="18" height="18" viewBox="0 0 48 48">
@@ -93,7 +93,7 @@ export default function LoginPage() {
             <div style={{ textAlign: 'right', marginTop: '-6px' }}>
               <a href="#" style={{ fontSize: '0.78rem', color: 'var(--gold)' }}>Forgot password?</a>
             </div>
-            <button type="submit" className="btn btn-gold" style={{ width: '100%', justifyContent: 'center', marginTop: '6px' }} disabled={loading}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '6px' }} disabled={loading}>
               {loading ? 'Signing in…' : 'Sign In ✦'}
             </button>
           </form>

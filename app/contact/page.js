@@ -23,7 +23,7 @@ export default function ContactPage() {
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem' }}>Message</label>
               <textarea className="input" style={{ width: '100%', minHeight: '150px' }} placeholder="How can we help you?" required></textarea>
             </div>
-            <button type="button" onClick={() => alert('Thanks for reaching out! We will get back to you shortly.')} className="btn btn-gold" style={{ justifyContent: 'center', marginTop: '10px' }}>Send Message</button>
+            <button type="button" onClick={() => alert('Thanks for reaching out! We will get back to you shortly.')} className="btn btn-primary" style={{ justifyContent: 'center', marginTop: '10px' }}>Send Message</button>
           </form>
         </div>
       </div>

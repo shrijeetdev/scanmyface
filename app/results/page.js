@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import RoutineAnalyzer from '@/components/scan/RoutineAnalyzer';
 import HabitEngine from '@/components/habit/HabitEngine';
 import { exportReportToPDF } from '@/lib/pdfExport';
+import { createClient } from '@/utils/supabase/client';
 
 /* ═══════════════════════════════════════════════
    HELPERS
@@ -37,7 +38,7 @@ function AnimatedScore({ score }) {
   }, [score]);
 
   const offset = circ - ringAnim * circ;
-  const rawColor = score >= 80 ? '#2E7D32' : score >= 60 ? '#E65100' : '#C62828';
+  const rawColor = score >= 80 ? '#4CAF50' : score >= 60 ? '#FFB300' : '#F44336';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
@@ -113,7 +114,6 @@ function FaceMap({ issues }) {
   );
 }
 
-/* Section divider */
 function SectionDivider() {
   return (
     <div style={{
@@ -124,7 +124,6 @@ function SectionDivider() {
   );
 }
 
-/* Section header */
 function SectionHeader({ number, title, subtitle, icon }) {
   return (
     <div style={{ marginBottom: '24px' }}>
@@ -150,7 +149,6 @@ function SectionHeader({ number, title, subtitle, icon }) {
   );
 }
 
-/* Auth Gate Blur Overlay */
 function AuthGateOverlay() {
   return (
     <div style={{
@@ -173,10 +171,10 @@ function AuthGateOverlay() {
         <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: 1.6 }}>
           Sign up free to see your complete analysis — issues, root causes, routine, and personalized product picks.
         </p>
-        <Link href="/signup" className="btn btn-gold" style={{ width: '100%', justifyContent: 'center', marginBottom: '10px' }}>
+        <Link href="/signup" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginBottom: '10px' }}>
           Create Free Account ✦
         </Link>
-        <Link href="/login" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>
+        <Link href="/login" className="btn btn-outline" style={{ width: '100%', justifyContent: 'center' }}>
           Already have an account? Log in
         </Link>
       </div>
@@ -185,7 +183,7 @@ function AuthGateOverlay() {
 }
 
 /* ═══════════════════════════════════════════════
-   MAIN RESULTS PAGE — Continuous Scroll
+   MAIN RESULTS PAGE
    ═══════════════════════════════════════════════ */
 export default function ResultsPage() {
   const router = useRouter();
@@ -193,14 +191,29 @@ export default function ResultsPage() {
   const [imageUrl, setImageUrl] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
   const { isLoggedIn } = useAuth();
+  const [deltaScore, setDeltaScore] = useState(null);
 
   useEffect(() => {
     const r = sessionStorage.getItem('scanReport');
     const img = sessionStorage.getItem('scanImageUrl');
     if (!r) { router.push('/scan'); return; }
-    setReport(JSON.parse(r));
+    const parsed = JSON.parse(r);
+    setReport(parsed);
     setImageUrl(img);
-  }, []);
+
+    const fetchHistory = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: scans } = await supabase.from('scans')
+        .select('score').eq('user_id', user.id).order('created_at', { ascending: false }).limit(2);
+      
+      if (scans && scans.length >= 2) {
+         setDeltaScore(parsed.score - scans[1].score);
+      }
+    };
+    fetchHistory();
+  }, [router]);
 
   if (!report) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -210,7 +223,6 @@ export default function ResultsPage() {
     </div>
   );
 
-  // For guest users, show only the first 2 sections and gate the rest
   const showGated = !isLoggedIn;
 
   const handleDownloadPDF = async () => {
@@ -224,7 +236,7 @@ export default function ResultsPage() {
       <Header />
 
       <div id="scan-report-area" style={{ background: 'var(--bg-primary)' }}>
-      {/* ═══════ SECTION 1: Face Score ═══════ */}
+      {/* ═══════ SECTION 1: Face Score & Highlights ═══════ */}
       <section style={{
         padding: '60px 24px 48px', textAlign: 'center',
         background: 'linear-gradient(180deg, var(--gold-bg) 0%, transparent 100%)',
@@ -237,7 +249,6 @@ export default function ResultsPage() {
               Analysis Complete ✦
             </h1>
 
-            {/* Trust badges & Download Action */}
             <div style={{
               display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginBottom: '32px',
               flexWrap: 'wrap',
@@ -256,19 +267,6 @@ export default function ResultsPage() {
               }}>
                 📊 Based on <strong style={{ color: 'var(--gold)' }}>{report.totalDataPoints || 12}</strong> data points
               </span>
-
-              {/* Download PDF Button */}
-              {isLoggedIn && (
-                <button 
-                  id="export-pdf-btn"
-                  onClick={handleDownloadPDF}
-                  disabled={isExporting}
-                  className="btn btn-ghost"
-                  style={{ padding: '4px 16px', fontSize: '0.75rem', borderRadius: '999px', height: 'auto' }}
-                >
-                  {isExporting ? 'Generating PDF...' : '📄 Download Report'}
-                </button>
-              )}
             </div>
           </ScrollReveal>
 
@@ -278,25 +276,41 @@ export default function ResultsPage() {
               gap: '32px', alignItems: 'center', justifyItems: 'center',
             }}>
               <AnimatedScore score={report.score} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', textAlign: 'left' }}>
-                {[
-                  { label: 'Skin Type',    value: report.skinType },
-                  { label: 'Issues Found', value: `${report.issueCount} detected` },
-                  { label: 'Score',        value: `${report.score}/100 — ${report.scoreLabel}` },
-                ].map(s => (
-                  <div key={s.label}>
-                    <div style={{ fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>{s.label}</div>
-                    <div style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: '0.95rem' }}>{s.value}</div>
-                  </div>
-                ))}
-                <div style={{
-                  background: 'var(--gold-bg)', border: '1px solid var(--gold-border)',
-                  borderRadius: '10px', padding: '12px 14px', marginTop: '4px',
-                }}>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--gold)', lineHeight: 1.5, fontStyle: 'italic' }}>
-                    "{report.scoreDesc}"
-                  </p>
-                </div>
+              
+              {/* SUMMARY BLOCK: User Requested explicit formatting */}
+              <div className="glass-card" style={{ flex: 1, textAlign: 'left', width: '100%', border: '1px solid var(--gold-border)', background: 'var(--bg-card)' }}>
+                 <h3 className="font-serif" style={{ fontSize: '1.2rem', marginBottom: '16px', color: 'var(--text-primary)' }}>Scan Summary</h3>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                       <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Skin Score:</span>
+                       <span style={{ fontWeight: 600 }}>{report.score}/100 ({report.scoreLabel})</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                       <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Skin Type:</span>
+                       <span style={{ color: 'var(--gold)', fontWeight: 600 }}>{report.skinType}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                       <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Issues Detected:</span>
+                       <span style={{ color: '#F44336', fontWeight: 600 }}>{report.issueCount} found</span>
+                    </div>
+                    {deltaScore !== null && (
+                       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: deltaScore > 0 ? 'rgba(76,175,80,0.1)' : 'rgba(244,67,54,0.1)', borderRadius: '6px' }}>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Improvement:</span>
+                          <span style={{ color: deltaScore > 0 ? '#4CAF50' : '#F44336', fontWeight: 700 }}>{deltaScore > 0 ? '+' : ''}{deltaScore} from last scan</span>
+                       </div>
+                    )}
+                 </div>
+                 
+                 <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-subtle)' }}>
+                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px' }}>Key Insights:</p>
+                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {report.detectedIssues.slice(0, 3).map(issue => (
+                         <li key={issue.id} style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', gap: '8px' }}>
+                           <span style={{ color: issue.color }}>→</span> {issue.name}: {issue.severity} severity
+                         </li>
+                      ))}
+                   </ul>
+                 </div>
               </div>
             </div>
           </ScrollReveal>
@@ -335,7 +349,7 @@ export default function ResultsPage() {
         </div>
       </section>
 
-      {/* ═══════ AUTH GATED SECTIONS (3–8) ═══════ */}
+      {/* ═══════ AUTH GATED SECTIONS (3–7) ═══════ */}
       <div style={{ position: 'relative' }}>
         {showGated && <AuthGateOverlay />}
 
@@ -346,7 +360,7 @@ export default function ResultsPage() {
             <div className="container-sm">
               <SectionDivider />
               <ScrollReveal>
-                <SectionHeader number="3" title="Detected Issues" subtitle="Problems identified with severity and confidence" icon="🔍" />
+                <SectionHeader number="3" title="Detailed Analysis" subtitle="Problems identified with severity and confidence" icon="🔍" />
               </ScrollReveal>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {report.detectedIssues.length === 0 && (
@@ -410,7 +424,6 @@ export default function ResultsPage() {
                               borderRadius: '999px', padding: '2px 10px',
                             }}>{cause.score}/100</span>
                           </div>
-                          {/* Score bar */}
                           <div style={{ height: '4px', background: 'var(--border-color)', borderRadius: '999px', overflow: 'hidden', marginBottom: '12px' }}>
                             <div style={{
                               width: `${cause.score}%`, height: '100%',
@@ -440,27 +453,15 @@ export default function ResultsPage() {
             </section>
           )}
 
-          {/* ═══════ SECTION 5: Product Mistakes (Placeholder) ═══════ */}
+          {/* ═══════ SECTION 5: Recommended Routine ═══════ */}
           <section style={{ padding: '0 24px 48px' }}>
             <div className="container-sm">
               <SectionDivider />
               <ScrollReveal>
-                <SectionHeader number="5" title="Product Check" subtitle="Upload your current products to check compatibility" icon="🧴" />
-                <RoutineAnalyzer detectedIssues={report.issues || []} />
-              </ScrollReveal>
-            </div>
-          </section>
-
-          {/* ═══════ SECTION 6: Recommended Routine (AM/PM) ═══════ */}
-          <section style={{ padding: '0 24px 48px' }}>
-            <div className="container-sm">
-              <SectionDivider />
-              <ScrollReveal>
-                <SectionHeader number="6" title="Your Daily Routine" subtitle="Personalised AM and PM routines for your skin" icon="📋" />
+                <SectionHeader number="5" title="Your Daily Routine" subtitle="Personalised AM and PM routines for your skin" icon="📋" />
               </ScrollReveal>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-                {/* AM */}
                 <ScrollReveal delay={100}>
                   <div>
                     <div style={{
@@ -496,17 +497,16 @@ export default function ResultsPage() {
                   </div>
                 </ScrollReveal>
 
-                {/* PM */}
                 <ScrollReveal delay={200}>
                   <div>
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: '10px',
                       marginBottom: '20px', paddingBottom: '12px',
-                      borderBottom: '1px solid rgba(100,100,200,0.3)',
+                      borderBottom: '1px solid rgba(136,136,255,0.3)',
                     }}>
                       <div style={{
                         width: '36px', height: '36px', borderRadius: '50%',
-                        background: 'rgba(100,100,200,0.1)', border: '1px solid rgba(100,100,200,0.2)',
+                        background: 'rgba(136,136,255,0.1)', border: '1px solid rgba(136,136,255,0.2)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem',
                       }}>🌙</div>
                       <h3 className="font-serif" style={{ fontSize: '1.1rem' }}>Night Routine</h3>
@@ -518,7 +518,7 @@ export default function ResultsPage() {
                       }}>
                         <div style={{
                           width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
-                          background: 'rgba(100,100,200,0.1)', border: '1px solid rgba(100,100,200,0.2)',
+                          background: 'rgba(136,136,255,0.1)', border: '1px solid rgba(136,136,255,0.2)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: '0.72rem', color: '#8888FF', fontWeight: 700,
                         }}>0{step.step}</div>
@@ -533,7 +533,6 @@ export default function ResultsPage() {
                 </ScrollReveal>
               </div>
 
-              {/* Habit Engine Module */}
               <ScrollReveal delay={300}>
                 <HabitEngine />
               </ScrollReveal>
@@ -541,15 +540,14 @@ export default function ResultsPage() {
             </div>
           </section>
 
-          {/* ═══════ SECTION 7: Products + Ingredients ═══════ */}
+          {/* ═══════ SECTION 6: Products + Ingredients ═══════ */}
           <section style={{ padding: '0 24px 48px' }}>
             <div className="container-sm">
               <SectionDivider />
               <ScrollReveal>
-                <SectionHeader number="7" title="Products & Ingredients" subtitle="Science-backed actives matched to your issues" icon="🧪" />
+                <SectionHeader number="6" title="Products & Ingredients" subtitle="Science-backed actives matched to your issues" icon="🧪" />
               </ScrollReveal>
 
-              {/* Ingredients by issue */}
               {report.detectedIssues.map(issue => {
                 const ings = report.ingredients[issue.id] || [];
                 if (!ings.length) return null;
@@ -586,7 +584,6 @@ export default function ResultsPage() {
                 );
               })}
 
-              {/* Product picks */}
               <ScrollReveal>
                 <h3 className="font-serif" style={{ fontSize: '1.2rem', marginBottom: '16px', marginTop: '16px' }}>
                   Recommended Products
@@ -614,8 +611,8 @@ export default function ResultsPage() {
                           ₹{p.price.toLocaleString('en-IN')}
                         </span>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <a href={p.amazonUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm" style={{ padding: '6px 12px', fontSize: '0.72rem' }}>Amazon →</a>
-                          <a href={p.nykaaUrl} target="_blank" rel="noopener noreferrer" className="btn btn-gold btn-sm" style={{ padding: '6px 12px', fontSize: '0.72rem' }}>Nykaa →</a>
+                          <a href={p.amazonUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline btn-sm" style={{ padding: '6px 12px', fontSize: '0.72rem' }}>Amazon →</a>
+                          <a href={p.nykaaUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm" style={{ padding: '6px 12px', fontSize: '0.72rem' }}>Nykaa →</a>
                         </div>
                       </div>
                     </div>
@@ -624,66 +621,17 @@ export default function ResultsPage() {
               </ScrollReveal>
             </div>
           </section>
-
-          {/* ═══════ SECTION 8: Improvement Plan ═══════ */}
-          {report.improvementPlan && (
-            <section style={{ padding: '0 24px 48px' }}>
-              <div className="container-sm">
-                <SectionDivider />
-                <ScrollReveal>
-                  <SectionHeader number="8" title="Your Improvement Plan" subtitle="What to expect with a consistent routine" icon="📈" />
-                </ScrollReveal>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-                  <ScrollReveal delay={100}>
-                    <div className="glass-card" style={{ padding: '24px', borderLeft: '3px solid var(--gold)' }}>
-                      <div style={{
-                        fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.12em',
-                        color: 'var(--gold)', marginBottom: '14px', textTransform: 'uppercase',
-                      }}>
-                        🗓 In 4 Weeks
-                      </div>
-                      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                        {report.improvementPlan.weekFour.map((item, i) => (
-                          <li key={i} style={{
-                            fontSize: '0.85rem', color: 'var(--text-secondary)',
-                            padding: '6px 0', borderBottom: '1px solid var(--border-subtle)',
-                            display: 'flex', alignItems: 'flex-start', gap: '8px',
-                          }}>
-                            <span style={{ color: 'var(--score-good)', flexShrink: 0 }}>→</span>
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </ScrollReveal>
-
-                  <ScrollReveal delay={200}>
-                    <div className="glass-card" style={{ padding: '24px', borderLeft: '3px solid var(--score-good)' }}>
-                      <div style={{
-                        fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.12em',
-                        color: 'var(--score-good)', marginBottom: '14px', textTransform: 'uppercase',
-                      }}>
-                        🗓 In 8 Weeks
-                      </div>
-                      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                        {report.improvementPlan.weekEight.map((item, i) => (
-                          <li key={i} style={{
-                            fontSize: '0.85rem', color: 'var(--text-secondary)',
-                            padding: '6px 0', borderBottom: '1px solid var(--border-subtle)',
-                            display: 'flex', alignItems: 'flex-start', gap: '8px',
-                          }}>
-                            <span style={{ color: 'var(--score-good)', flexShrink: 0 }}>✓</span>
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </ScrollReveal>
-                </div>
-              </div>
-            </section>
-          )}
+          
+          {/* ═══════ SECTION 7: Product Checker Moved Here ═══════ */}
+          <section style={{ padding: '0 24px 48px' }}>
+            <div className="container-sm">
+              <SectionDivider />
+              <ScrollReveal>
+                <SectionHeader number="7" title="Product Check" subtitle="Upload your current products to check compatibility" icon="🧴" />
+                <RoutineAnalyzer detectedIssues={report.issues || []} />
+              </ScrollReveal>
+            </div>
+          </section>
 
           {/* ═══════ Medical Disclaimer ═══════ */}
           <section style={{ padding: '0 24px 48px' }}>
@@ -707,19 +655,34 @@ export default function ResultsPage() {
       </div>
       </div>
 
-      {/* ═══════ Sticky CTA ═══════ */}
-      <div style={{
-        position: 'sticky', bottom: 0, left: 0, right: 0,
-        background: 'var(--header-bg)', backdropFilter: 'blur(20px)',
-        borderTop: '1px solid var(--border-color)', padding: '16px 24px',
-        display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap',
-        zIndex: 100,
+      {/* ═══════ New Download & Navigation Layout (BOTTOM) ═══════ */}
+      <section style={{
+        padding: '32px 24px 64px',
+        textAlign: 'center',
+        background: 'var(--bg-primary)'
       }}>
-        {!isLoggedIn && (
-          <Link href="/signup" className="btn btn-gold">✦ Save & Track Progress</Link>
-        )}
-        <Link href="/scan" className="btn btn-ghost">Scan Again →</Link>
-      </div>
+        <div className="container-sm" style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+           {isLoggedIn ? (
+             <button 
+                id="export-pdf-link-main"
+                onClick={handleDownloadPDF} 
+                disabled={isExporting}
+                className="btn btn-primary btn-lg" 
+                style={{ width: '100%', maxWidth: '400px' }}
+             >
+                {isExporting ? 'Generating...' : 'Download Full Report 📥'}
+             </button>
+           ) : (
+             <Link href="/signup" className="btn btn-primary btn-lg" style={{ width: '100%', maxWidth: '400px' }}>
+                ✦ Save & Track Progress
+             </Link>
+           )}
+           
+           <Link href="/scan?mode=camera" className="btn btn-outline" style={{ width: '100%', maxWidth: '400px' }}>
+              Scan Again
+           </Link>
+        </div>
+      </section>
 
       <Footer />
     </main>
