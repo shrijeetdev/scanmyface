@@ -38,60 +38,7 @@ export default function FaceScan360({ onComplete, onCancel }) {
   const [ringProgress, setRingProgress] = useState(0);
   const [faceDetected, setFaceDetected] = useState(false);
 
-  // Start camera
-  useEffect(() => {
-    startCamera();
-    return () => stopCamera();
-  }, []);
-
-  // Ring animation
-  useEffect(() => {
-    const target = ((currentStep) / CAPTURE_STEPS.length) * 100;
-    const timer = setTimeout(() => setRingProgress(target), 200);
-    return () => clearTimeout(timer);
-  }, [currentStep]);
-
-  // Skin/Face Auto-Detect Loop
-  useEffect(() => {
-    if (!cameraReady || countingDown || processing || captures.length >= CAPTURE_STEPS.length) return;
-
-    const interval = setInterval(() => {
-      if (!videoRef.current) return;
-      const video = videoRef.current;
-      if (video.videoWidth === 0 || video.videoHeight === 0) return;
-
-      const canvas = document.createElement('canvas');
-      canvas.width = 120;
-      canvas.height = 120;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      ctx.drawImage(video, 0, 0, 120, 120);
-      const imgData = ctx.getImageData(0, 0, 120, 120);
-      const pixels = imgData.data;
-
-      // Check center 50% box
-      let skinPixels = 0;
-      const startBox = 30, endBox = 90;
-      for (let y = startBox; y < endBox; y++) {
-        for (let x = startBox; x < endBox; x++) {
-          const idx = (y * 120 + x) * 4;
-          if (isSkinPixel(pixels[idx], pixels[idx+1], pixels[idx+2])) skinPixels++;
-        }
-      }
-
-      const totalBox = (endBox - startBox) * (endBox - startBox);
-      const percent = (skinPixels / totalBox) * 100;
-      
-      if (percent > 20) {
-        setFaceDetected(true);
-        handleCapture();
-      } else {
-        setFaceDetected(false);
-      }
-    }, 600);
-
-    return () => clearInterval(interval);
-  }, [cameraReady, countingDown, processing, captures.length, handleCapture]);
-
+  /* ─── Helper Functions ─── */
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -174,6 +121,61 @@ export default function FaceScan360({ onComplete, onCancel }) {
       }
     }, 800);
   }, [captures, currentStep, captureFrame, onComplete]);
+
+  /* ─── Effects ─── */
+  // Start camera
+  useEffect(() => {
+    startCamera();
+    return () => stopCamera();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Ring animation
+  useEffect(() => {
+    const target = ((currentStep) / CAPTURE_STEPS.length) * 100;
+    const timer = setTimeout(() => setRingProgress(target), 200);
+    return () => clearTimeout(timer);
+  }, [currentStep]);
+
+  // Skin/Face Auto-Detect Loop
+  useEffect(() => {
+    if (!cameraReady || countingDown || processing || captures.length >= CAPTURE_STEPS.length) return;
+
+    const interval = setInterval(() => {
+      if (!videoRef.current) return;
+      const video = videoRef.current;
+      if (video.videoWidth === 0 || video.videoHeight === 0) return;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 120;
+      canvas.height = 120;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(video, 0, 0, 120, 120);
+      const imgData = ctx.getImageData(0, 0, 120, 120);
+      const pixels = imgData.data;
+
+      // Check center 50% box
+      let skinPixels = 0;
+      const startBox = 30, endBox = 90;
+      for (let y = startBox; y < endBox; y++) {
+        for (let x = startBox; x < endBox; x++) {
+          const idx = (y * 120 + x) * 4;
+          if (isSkinPixel(pixels[idx], pixels[idx+1], pixels[idx+2])) skinPixels++;
+        }
+      }
+
+      const totalBox = (endBox - startBox) * (endBox - startBox);
+      const percent = (skinPixels / totalBox) * 100;
+      
+      if (percent > 20) {
+        setFaceDetected(true);
+        handleCapture();
+      } else {
+        setFaceDetected(false);
+      }
+    }, 600);
+
+    return () => clearInterval(interval);
+  }, [cameraReady, countingDown, processing, captures.length, handleCapture]);
 
   const step = CAPTURE_STEPS[currentStep];
   const progress = ringProgress;
