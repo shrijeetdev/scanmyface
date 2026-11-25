@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# scanmyface
 
-## Getting Started
+**GlowXLab's skin analysis prototype.** A guided face scan, a readable skin report and a daily routine builder, built with Next.js and Supabase.
 
-First, run the development server:
+[Live demo](https://scanmyface.vercel.app) · [Report a security issue](./SECURITY.md)
+
+> **Status: prototype.** The scan flow, report UI, routine builder and habit tracking are real. The analysis engine in `lib/aiEngine.js` is currently a deterministic simulation (the same image always gives the same result) so the full product loop can be tested end to end. Swapping in a real vision model is the next milestone.
+
+## What it does
+
+- **Guided 3-angle scan:** front, left and right captures through the camera, with on-screen prompts (`components/scan/FaceScan360.jsx`)
+- **Face check before analysis:** a fast client-side skin-tone and framing heuristic (`lib/faceValidator.js`)
+- **Skin report:** issues with severity, likely root causes from lifestyle inputs (sleep, water, stress and more), and an improvement plan
+- **Routine builder:** ingredients matched to each issue, with product suggestions (`data/`)
+- **Habit tracking and dashboard:** progress over time for signed-in users
+- **PDF export:** download the report (`lib/pdfExport.js`)
+
+## Stack
+
+Next.js 16 · React 19 · Supabase (auth + Postgres with row-level security) · Framer Motion · Recharts · jsPDF · Vercel
+
+## Run it locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create `.env.local`:
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create the tables and policies by running `supabase/schema.sql` in the Supabase SQL editor. Every table has row-level security on, and users can only read and write their own rows.
 
-## Learn More
+## Privacy
 
-To learn more about Next.js, take a look at the following resources:
+Face images are personal data. Guest scans are not saved. Signed-in users' scans are saved to their own account so progress can be tracked over time.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Roadmap
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [ ] Real vision model for issue detection
+- [ ] Stricter image storage and consent controls
+- [ ] Before and after comparison across scans
+- [ ] Android and iOS apps
 
-## Deploy on Vercel
+## Author
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Built by [Shrijeet Singh](https://github.com/shrijeetdev), co-founder and CTO of [Vexocore](https://vexocore.io).
